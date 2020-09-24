@@ -9,7 +9,7 @@ import tempfile
 
 # carla library
 try:
-    sys.path.append(glob.glob('../../PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
+    sys.path.append(glob.glob('../carla/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
         sys.version_info.minor,
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
@@ -68,15 +68,14 @@ def main(args):
     net_file = os.path.join(basedir, 'sumo_config', current_map.name + '.net.xml')
     netconvert_carla(xodr_file, net_file, guess_tls=True)
 
-    
-    # print(basedir)
     cfg_file = os.path.join(basedir, 'sumo_config', current_map.name + '.sumocfg')
     vtypes_file = os.path.join(basedir, 'sumo_config', 'carlavtypes.rou.xml')
-    # print(vtypes_file)
     viewsettings_file = os.path.join(basedir, 'sumo_config', 'viewsettings.xml')
+
+
     write_sumocfg_xml(cfg_file, net_file, vtypes_file, viewsettings_file)
 
-    # sumo_net = sumolib.net.readNet(net_file)
+    sumo_net = sumolib.net.readNet(net_file)
 
 
 if __name__ == '__main__':
