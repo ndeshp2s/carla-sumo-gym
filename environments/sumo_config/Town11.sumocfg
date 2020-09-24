@@ -1,8 +1,8 @@
 <?xml version='1.0' encoding='UTF-8'?>
 <configuration>
   <input>
-    <net-file value="/home/niranjan/carla-sumo-gym/environments/sumo_config/Town11.net.xml"/>
-    <route-files value="/home/niranjan/carla-sumo-gym/environments/sumo_config/carlavtypes.rou.xml"/>
+    <net-file value="/home/niranjan/carla-sumo-gym/environments/sumo_config/net/Town11.net.xml"/>
+    <route-files value="/home/niranjan/carla-sumo-gym/environments/sumo_config/rou/Town11.rou.xml"/>
   </input>
   <gui_only>
     <gui-settings-file value="/home/niranjan/carla-sumo-gym/environments/sumo_config/viewsettings.xml"/>

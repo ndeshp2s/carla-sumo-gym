@@ -1,0 +1,6 @@
+<routes>
+    <!-- Ego car -->
+    <route id="routeEgo" edges="-0.0.00 8.0.00 11.0.00"/>
+    <vType id="vehicle.audi.etron" length="4.892005443572998" width="2.08632230758667" height="1.6511509418487549" vClass="evehicle" color="1,0,0"/>
+
+</routes>
