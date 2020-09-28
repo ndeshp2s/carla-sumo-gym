@@ -47,30 +47,11 @@ class CarlaSumoGym(gym.Env):
         self.client = None
         self.world = None
         self.synchronization = None
-        # # carla simulation
-        # self.carla_simulation = CarlaSimulation('localhost', 2000, 0.1) # host, port, step_length
-        # self.client = self.carla_simulation.client
-        # self.world = self.carla_simulation.client.get_world()
-        # current_map = self.world.get_map()
 
-        # # sumo simulation
-        # basedir = os.path.dirname(os.path.realpath(__file__))
-        # net_file = os.path.join(basedir, 'sumo_config', current_map.name + '.net.xml')
-        # cfg_file = os.path.join(basedir, 'sumo_config', current_map.name + '.sumocfg')
-
-        # self.sumo_net = sumolib.net.readNet(net_file)
-        # self.sumo_simulation =  SumoSimulation(cfg_file=cfg_file, step_length=0.1, host=None, port=None, sumo_gui=True, client_order=1)
-
-        # # synchronization
-        # self.synchronization = SimulationSynchronization(self.sumo_simulation, self.carla_simulation, 'none',
-        #                                         True, False)
-
-        # # Spawn the ego vehicle
-        # self.spawn_ego_vehicle()
 
     def connect_server_client(self, display = True, rendering = True, synchronous = True, town = 'Town11', fps = 10.0):
 
-        self.kill_carla_server()
+        self.close()
 
         # open the server
         p = None
@@ -123,14 +104,73 @@ class CarlaSumoGym(gym.Env):
         self.synchronization = SimulationSynchronization(sumo_sim, carla_sim, 'none', True, False)
 
 
+    def take_action(self, action):
+        dt = traci.simulation.getDeltaT()
+        ev_speed = self.get_ego_vehicle_speed()
+        print('current: ', ev_speed)
+        # ev_data = traci.vehicle.getSubscriptionResults('ego_vehicle')[traci.constants.VAR_SPEED]
+        # print(ev_data)
+        # for key in ev_data:
+        #     print(key, '->', ev_data[traci.constants.VAR_SPEED])
+        # print('------')
+        #print(ev_data[0])
+
+        # accelerate 
+        if action == 0:  
+            acceleration = 1
+            desired_speed = ev_speed + dt*acceleration
+
+        # deccelerate
+        elif action == 1:
+            acceleration = -1
+            desired_speed = ev_speed + dt*acceleration
+        
+        # continue
+        elif action == 2:
+            acceleration = 0
+            desired_speed = ev_speed + dt*acceleration
+
+        # brake    
+        elif action == 3:
+            desired_speed = 0.0 
+
+
+        if desired_speed < 0.00:
+            desired_speed = 0.0
+
+        if desired_speed > 10.00:
+            desired_speed = 10.00
+
+        #traci.vehicle.slowDown(vehID = 'ego_vehicle', speed = desired_speed, duration = dt)
+        print('desired: ', desired_speed)
+        traci.vehicle.setSpeed(vehID = 'ego_vehicle', speed = desired_speed)
+        #traci.vehicle.slowDown(vehID = 'ego_vehicle', speed = desired_speed, duration = dt)
+
+        print(traci.vehicle.getAccel(vehID = 'ego_vehicle'), traci.vehicle.getDecel(vehID = 'ego_vehicle'))
+
+
     def tick(self):
         self.synchronization.tick()
 
 
-    def spawn_ego_vehicle(self):
-        traci.vehicle.addFull('ego_vehicle', 'routeEgo', depart=None, departPos=str(20.0), departSpeed='0', typeID='vehicle.audi.etron')
-        traci.vehicle.setSpeedMode('ego_vehicle', int('00000',0))
-        traci.vehicle.setSpeed('ego_vehicle', 0.0)
+    def spawn_ego_vehicle(self, position, type_id, max_speed = 10.0):
+        traci.vehicle.addFull(vehID = 'ego_vehicle', routeID = 'routeEgo', depart=None, departPos=str(position), departSpeed='0', typeID=type_id)
+        traci.vehicle.setSpeedMode(vehID = 'ego_vehicle', sm = int('00000',0))
+        traci.vehicle.setSpeed(vehID = 'ego_vehicle', speed = 0.0)
+        traci.vehicle.setMaxSpeed(vehID = 'ego_vehicle', speed = max_speed)
+
+        self.synchronization.sumo.subscribe(actor_id = 'ego_vehicle')
+
+
+    def get_ego_vehicle_speed(self):
+        ev_data = traci.vehicle.getSubscriptionResults('ego_vehicle')
+        ev_speed = ev_data[traci.constants.VAR_SPEED]
+
+        if ev_speed < 0.0:
+            ev_speed = 0.0
+
+        return ev_speed
+
 
 
     def kill_carla_server(self):
@@ -165,3 +205,12 @@ class CarlaSumoGym(gym.Env):
             self.synchronization.close()
 
         self.kill_carla_server()
+
+        self.clear_all()
+
+
+    def clear_all(self):
+        self.client = None
+        self.world = None
+        self.synchronization = None
+
