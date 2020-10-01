@@ -14,7 +14,7 @@ try:
 			action = input('Enter action: ')
 			action = int(action)
 			env0.step(action = action)
-			#time.sleep(1)
+			time.sleep(0.1)
 
 except KeyboardInterrupt:
 	print('Closing')
