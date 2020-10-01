@@ -22,9 +22,11 @@ class UrbanEnv(CarlaSumoGym):
 
     def reset(self):
 
-        self.connect_server_client(display = config.display, rendering = config.rendering, town = config.town, fps = config.fps)
+        self.connect_server_client(display = config.display, rendering = config.rendering, town = config.town, fps = config.fps, sumo_gui = config.sumo_gui)
         
         self.spawn_ego_vehicle(position = config.start_position, type_id = config.ev_type)
+
+        self.tick()
 
 
     def get_observations(self):
