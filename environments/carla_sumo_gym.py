@@ -49,7 +49,7 @@ class CarlaSumoGym(gym.Env):
         self.synchronization = None
 
 
-    def connect_server_client(self, display = True, rendering = True, synchronous = True, town = 'Town11', fps = 10.0):
+    def connect_server_client(self, display = True, rendering = True, synchronous = True, town = 'Town11', fps = 10.0, sumo_gui = False):
 
         self.close()
 
@@ -100,7 +100,7 @@ class CarlaSumoGym(gym.Env):
         cfg_file = os.path.join(basedir, 'sumo_config', current_map.name + '.sumocfg')
 
         sumo_net =  sumolib.net.readNet(net_file)
-        sumo_sim =  SumoSimulation(cfg_file=cfg_file, step_length=0.1, host=None, port=None, sumo_gui=True, client_order=1)
+        sumo_sim =  SumoSimulation(cfg_file=cfg_file, step_length=0.1, host=None, port=None, sumo_gui=sumo_gui, client_order=1)
         self.synchronization = SimulationSynchronization(sumo_sim, carla_sim, 'none', True, False)
 
 
