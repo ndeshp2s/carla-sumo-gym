@@ -52,7 +52,7 @@ class CarlaSumoGym(gym.Env):
 
     def connect_server_client(self, display = True, rendering = True, synchronous = True, town = 'Town11', fps = 10.0, sumo_gui = False):
 
-        self.close()
+        self.kill_carla_server()
 
         # open the server
         p = None
@@ -92,7 +92,6 @@ class CarlaSumoGym(gym.Env):
         delta_sec = 1.0 / fps
         settings = self.world.get_settings()
         self.world.apply_settings(carla.WorldSettings(no_rendering_mode = not rendering, synchronous_mode = synchronous, fixed_delta_seconds = delta_sec))
-
 
         # open sumo simulator
         current_map = self.world.get_map()
@@ -169,7 +168,11 @@ class CarlaSumoGym(gym.Env):
 
     def get_ego_vehicle_id(self):
         ego_vehicle = self.world.get_actors().filter('vehicle.audi.etron')
-        return ego_vehicle[0].id
+
+        if len(ego_vehicle) >= 0:
+            return ego_vehicle[0].id
+        else:
+            return 0
 
 
     def kill_carla_server(self):
@@ -200,6 +203,11 @@ class CarlaSumoGym(gym.Env):
 
 
     def close(self):
+
+        # destroy all actors in carla
+        # actor_ids = self.world.get_actors()
+        # self.client.apply_batch([carla.command.DestroyActor(x) for x in actor_ids])
+
         if self.synchronization is not None:
             self.synchronization.close()
 
