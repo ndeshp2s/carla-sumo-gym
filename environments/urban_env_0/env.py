@@ -31,9 +31,9 @@ class UrbanEnv(CarlaSumoGym):
 
     def get_observations(self):
     	# get ego vehicle current speed and convert to km/hr
-    	ego_vehicle_speed = (self.get_ego_vehicle_speed())
-    	ego_vehicle_speed *= 3.6
-    	ego_vehicle_speed = round( ego_vehicle_speed, 2)
-    	print('ego vehicle speed: ', ego_vehicle_speed)
+    	# ego_vehicle_speed = (self.get_ego_vehicle_speed())
+    	# ego_vehicle_speed *= 3.6
+    	# ego_vehicle_speed = round( ego_vehicle_speed, 2)
+    	print('after: ', self.get_ego_vehicle_speed(kmph = False))
 
 
