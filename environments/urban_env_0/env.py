@@ -1,11 +1,17 @@
 from environments.carla_sumo_gym import CarlaSumoGym
 from environments.urban_env_0 import config
+from utils.renderer import Renderer
 
 class UrbanEnv(CarlaSumoGym):
     def __init__(self):
         super(UrbanEnv, self).__init__()
 
         self.config = config
+
+        if self.config.rendering:
+        	self.renderer = Renderer()
+        	self.renderer.create_screen(self.config.screen_x, self.config.screen_y)
+
 
 
     def step(self, action = None):
@@ -27,6 +33,8 @@ class UrbanEnv(CarlaSumoGym):
         self.spawn_ego_vehicle(position = config.start_position, type_id = config.ev_type)
 
         self.tick()
+
+        #self.add_sensors(rgb = config.rgb_sensor)
 
 
     def get_observations(self):
