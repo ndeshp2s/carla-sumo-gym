@@ -47,6 +47,7 @@ class CarlaSumoGym(gym.Env):
         self.client = None
         self.world = None
         self.synchronization = None
+        self.max_speed = 10.0
 
 
     def connect_server_client(self, display = True, rendering = True, synchronous = True, town = 'Town11', fps = 10.0, sumo_gui = False):
@@ -107,22 +108,15 @@ class CarlaSumoGym(gym.Env):
     def take_action(self, action):
         dt = traci.simulation.getDeltaT()
         ev_speed = self.get_ego_vehicle_speed()
-        print('current: ', ev_speed)
-        # ev_data = traci.vehicle.getSubscriptionResults('ego_vehicle')[traci.constants.VAR_SPEED]
-        # print(ev_data)
-        # for key in ev_data:
-        #     print(key, '->', ev_data[traci.constants.VAR_SPEED])
-        # print('------')
-        #print(ev_data[0])
 
         # accelerate 
         if action == 0:  
-            acceleration = 1
+            acceleration = 2.6
             desired_speed = ev_speed + dt*acceleration
 
         # deccelerate
         elif action == 1:
-            acceleration = -1
+            acceleration = -2.6
             desired_speed = ev_speed + dt*acceleration
         
         # continue
@@ -132,21 +126,17 @@ class CarlaSumoGym(gym.Env):
 
         # brake    
         elif action == 3:
-            desired_speed = 0.0 
+            acceleration = -7.8
+            desired_speed = ev_speed + dt*acceleration
 
 
         if desired_speed < 0.00:
             desired_speed = 0.0
 
-        if desired_speed > 10.00:
+        if desired_speed > self.max_speed:
             desired_speed = 10.00
 
-        #traci.vehicle.slowDown(vehID = 'ego_vehicle', speed = desired_speed, duration = dt)
-        print('desired: ', desired_speed)
-        traci.vehicle.setSpeed(vehID = 'ego_vehicle', speed = desired_speed)
-        #traci.vehicle.slowDown(vehID = 'ego_vehicle', speed = desired_speed, duration = dt)
-
-        print(traci.vehicle.getAccel(vehID = 'ego_vehicle'), traci.vehicle.getDecel(vehID = 'ego_vehicle'))
+        traci.vehicle.setSpeed(vehID = 'ev', speed = desired_speed)
 
 
     def tick(self):
@@ -154,23 +144,32 @@ class CarlaSumoGym(gym.Env):
 
 
     def spawn_ego_vehicle(self, position, type_id, max_speed = 10.0):
-        traci.vehicle.addFull(vehID = 'ego_vehicle', routeID = 'routeEgo', depart=None, departPos=str(position), departSpeed='0', typeID=type_id)
-        traci.vehicle.setSpeedMode(vehID = 'ego_vehicle', sm = int('00000',0))
-        traci.vehicle.setSpeed(vehID = 'ego_vehicle', speed = 0.0)
-        traci.vehicle.setMaxSpeed(vehID = 'ego_vehicle', speed = max_speed)
+        traci.vehicle.addFull(vehID = 'ev', routeID = 'routeEgo', depart=None, departPos=str(position), departSpeed='0', typeID=type_id)
+        traci.vehicle.setSpeedMode(vehID = 'ev', sm = int('00000',0))
+        traci.vehicle.setSpeed(vehID = 'ev', speed = 0.0)
+        traci.vehicle.setMaxSpeed(vehID = 'ev', speed = max_speed)
+        self.max_speed = max_speed
 
-        self.synchronization.sumo.subscribe(actor_id = 'ego_vehicle')
+        self.synchronization.sumo.subscribe(actor_id = 'ev')
 
 
-    def get_ego_vehicle_speed(self):
-        ev_data = traci.vehicle.getSubscriptionResults('ego_vehicle')
+    def get_ego_vehicle_speed(self, kmph = False):
+        ev_data = traci.vehicle.getSubscriptionResults('ev')
         ev_speed = ev_data[traci.constants.VAR_SPEED]
 
         if ev_speed < 0.0:
             ev_speed = 0.0
 
-        return ev_speed
+        if kmph is True:
+            ev_speed *= 3.6
+            ev_speed = round(ev_speed, 2)
 
+        return round(ev_speed, 2)
+
+
+    def get_ego_vehicle_id(self):
+        ego_vehicle = self.world.get_actors().filter('vehicle.audi.etron')
+        return ego_vehicle[0].id
 
 
     def kill_carla_server(self):
