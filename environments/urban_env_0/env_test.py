@@ -16,6 +16,8 @@ try:
 			env0.step(action = action)
 			time.sleep(0.1)
 
+			#print('ev id: ', env0.get_ego_vehicle_id())
+
 except KeyboardInterrupt:
 	print('Closing')
 
