@@ -17,6 +17,8 @@ import carla
 from environments.carla_sumo_gym import CarlaSumoGym
 from environments.urban_env_0 import config
 from utils.renderer import Renderer
+from environments.spawner import Spawner
+from environments.urban_env_0.walker_spawn_points import walker_spawn_points
 
 class UrbanEnv(CarlaSumoGym):
     def __init__(self):
@@ -32,16 +34,23 @@ class UrbanEnv(CarlaSumoGym):
             self.renderer = Renderer()
             self.renderer.create_screen(config.screen_x, config.screen_y)
 
+        #self.spawner = None
+
 
     def step(self, action = None):
 
         print('before: ', self.get_ego_vehicle_speed(kmph = False))
 
+        self.render()
+
         # select action to be taken
         self.take_action(action)
 
+        # run spawner
+        #self.spawner.run_step()
+
         # render the image
-        self.render()
+        #self.render()
 
         # perform action in the simulation environment
         self.tick()
@@ -50,15 +59,18 @@ class UrbanEnv(CarlaSumoGym):
         self.get_observations()
 
 
+
+
     def reset(self):
 
         self.connect_server_client(display = config.display, rendering = config.rendering, town = config.town, fps = config.fps, sumo_gui = config.sumo_gui)
         
         self.spawn_ego_vehicle(position = config.start_position, type_id = config.ev_type)
 
-        self.tick()
-
         self.add_sensors()
+
+        # self.spawner = Spawner(self.client)
+        # self.spawner.update_config(config = config, ped_spawn_points = walker_spawn_points, ev_id = self.get_ego_vehicle_id())
 
         self.tick()
 
@@ -74,7 +86,7 @@ class UrbanEnv(CarlaSumoGym):
     def add_sensors(self):
 
         # add rgb sensor to ego vehicle
-        if config.add_rgb_sensor:
+        if config.rgb_sensor:
             rgb_bp = rgb_bp = self.world.get_blueprint_library().find('sensor.camera.rgb')
             rgb_bp.set_attribute('image_size_x', config.rgb_size_x)
             rgb_bp.set_attribute('image_size_y', config.rgb_size_y)

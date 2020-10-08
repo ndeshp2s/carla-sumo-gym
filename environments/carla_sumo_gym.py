@@ -125,7 +125,7 @@ class CarlaSumoGym(gym.Env):
 
         # brake    
         elif action == 3:
-            acceleration = -7.8
+            acceleration = -10.0
             desired_speed = ev_speed + dt*acceleration
 
 
@@ -133,7 +133,7 @@ class CarlaSumoGym(gym.Env):
             desired_speed = 0.0
 
         if desired_speed > self.max_speed:
-            desired_speed = 10.00
+            desired_speed = self.max_speed
 
         traci.vehicle.setSpeed(vehID = 'ev', speed = desired_speed)
 
@@ -142,7 +142,7 @@ class CarlaSumoGym(gym.Env):
         self.synchronization.tick()
 
 
-    def spawn_ego_vehicle(self, position, type_id, max_speed = 10.0):
+    def spawn_ego_vehicle(self, position, type_id, max_speed = 5.0):
         traci.vehicle.addFull(vehID = 'ev', routeID = 'routeEgo', depart=None, departPos=str(position), departSpeed='0', typeID=type_id)
         traci.vehicle.setSpeedMode(vehID = 'ev', sm = int('00000',0))
         traci.vehicle.setSpeed(vehID = 'ev', speed = 0.0)
@@ -150,6 +150,9 @@ class CarlaSumoGym(gym.Env):
         self.max_speed = max_speed
 
         self.synchronization.sumo.subscribe(actor_id = 'ev')
+
+        # tick to register the vehicle in the simulation environment
+        self.tick()
 
 
     def get_ego_vehicle_speed(self, kmph = False):

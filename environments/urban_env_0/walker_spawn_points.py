@@ -1,6 +1,20 @@
+import sys, glob, os
+
+# carla library
+try:
+    sys.path.append(glob.glob('../carla/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
+        sys.version_info.major,
+        sys.version_info.minor,
+        'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
+except IndexError:
+    pass
+import carla
+
+
 point_spacing = 10
 
 walker_spawn_points = []
+walker_goal_points = []
 
 for i in range(15, 90, point_spacing):
     spawn_point = carla.Transform(carla.Location(x=i,y=-5,z=0.5), carla.Rotation(yaw=0, pitch=0, roll=0))
@@ -116,3 +130,6 @@ spawn_point = carla.Transform(carla.Location(x=-5.5,y=-10,z=0.5), carla.Rotation
 walker_spawn_points.append(spawn_point)
 spawn_point = carla.Transform(carla.Location(x=-5.5,y=-12,z=0.5), carla.Rotation(yaw=0, pitch=0, roll=0))
 walker_spawn_points.append(spawn_point) 
+
+
+walker_goal_points = walker_spawn_points

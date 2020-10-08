@@ -17,7 +17,7 @@ def is_within_distance_ahead(target_transform, current_transform, max_distance, 
     if norm_target < 0.001:
         return True
 
-    if (norm_target > max_distance) or (nor < min_distance):
+    if (norm_target > max_distance) or (norm_target < min_distance):
         return False
 
     fwd = current_transform.get_forward_vector()
@@ -25,3 +25,10 @@ def is_within_distance_ahead(target_transform, current_transform, max_distance, 
     d_angle = math.degrees(math.acos(np.clip(np.dot(forward_vector, target_vector) / norm_target, -1., 1.)))
 
     return d_angle < 90.0
+
+
+def euclidean_distance(source_transform, destination_transform):
+    dx = source_transform.location.x - destination_transform.location.x
+    dy = source_transform.location.y - destination_transform.location.y
+
+    return math.sqrt(dx * dx + dy * dy)
