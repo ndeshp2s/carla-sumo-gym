@@ -28,37 +28,33 @@ class UrbanEnv(CarlaSumoGym):
 
         self.rgb_sensor = None
         self.rgb_image = None
+        self.rgb_image_frame = 0
         self.renderer = None
 
         if config.rendering:
             self.renderer = Renderer()
-            self.renderer.create_screen(config.screen_x, config.screen_y)
+            self.renderer.create_screen(config.rendering_screen_x, config.rendering_screen_y)
 
-        #self.spawner = None
+        self.walker_spawn_points = walker_spawn_points
 
 
     def step(self, action = None):
 
-        print('before: ', self.get_ego_vehicle_speed(kmph = False))
+        q_values = self.compute_q_values(action = action)
 
-        self.render()
+        self.render(model_output = q_values, speed = self.get_ego_vehicle_speed(kmph = True))
 
         # select action to be taken
         self.take_action(action)
 
-        # run spawner
-        #self.spawner.run_step()
-
-        # render the image
-        #self.render()
 
         # perform action in the simulation environment
         self.tick()
 
         # get next state and reward
-        self.get_observations()
+        state = self.get_observations()
 
-
+        return state
 
 
     def reset(self):
@@ -69,10 +65,15 @@ class UrbanEnv(CarlaSumoGym):
 
         self.add_sensors()
 
-        # self.spawner = Spawner(self.client)
-        # self.spawner.update_config(config = config, ped_spawn_points = walker_spawn_points, ev_id = self.get_ego_vehicle_id())
-
         self.tick()
+
+        #self.init_system()
+
+        state = self.get_observations()
+
+        self.client.start_recorder("/home/niranjan/recording01.log")
+
+        return state
 
 
     def get_observations(self):
@@ -80,7 +81,8 @@ class UrbanEnv(CarlaSumoGym):
         # ego_vehicle_speed = (self.get_ego_vehicle_speed())
         # ego_vehicle_speed *= 3.6
         # ego_vehicle_speed = round( ego_vehicle_speed, 2)
-        print('after: ', self.get_ego_vehicle_speed(kmph = False))
+        print('ev speed: ', self.get_ego_vehicle_speed(kmph = False), self.get_ego_vehicle_speed(kmph = True))
+        return None
 
 
     def add_sensors(self):
@@ -104,11 +106,12 @@ class UrbanEnv(CarlaSumoGym):
         array = np.reshape(array, (image.height, image.width, 4))
         array = array[:, :, :3]
         self.rgb_image = array
+        self.rgb_image_frame = image.frame
 
 
-    def render(self):
+    def render(self, model_output = None, speed = 0):
         if self.renderer is not None and self.rgb_image is not None: 
-            self.renderer.render_image(self.rgb_image)
+            self.renderer.render_image(image = self.rgb_image, image_frame = self.rgb_image_frame, model_output = model_output, speed = speed)
 
 
     def close(self):
@@ -129,14 +132,6 @@ class UrbanEnv(CarlaSumoGym):
         self.renderer.create_screen(config.screen_x, config.screen_y * self.no_of_cam)
 
 
-    # def render(self):
-    #     if self.renderer is None:
-    #         return
-
-    #     img =  self.get_rendered_image()
-    #     self.renderer.render_image(img)
-
-
     def get_rendered_image(self):
         temp = []
         if config.rgb_sensor: temp.append(self.rgb_image)
@@ -144,6 +139,42 @@ class UrbanEnv(CarlaSumoGym):
 
         return np.vstack(img for img in temp)
 
+
+    def init_system(self):
+        for i in range(10):
+            self.step(action = 3)
+
+
+    def compute_q_values(self, action = 0):
+        import random
+
+        q_values = [1,0.2,0.3,0.5] 
+
+        if action == 0:
+            q_values[0] = round(random.uniform(0.9, 1.0), 2) # accelerate 
+            q_values[1] = round(random.uniform(0.4, 0.6), 2) # decelerate 
+            q_values[2] = round(random.uniform(0.6, 0.8), 2) # steer
+            q_values[3] = round(random.uniform(0.3, 0.5), 2) # brake
+
+        elif action == 1:
+            q_values[0] = round(random.uniform(0.4, 0.7), 2)
+            q_values[1] = round(random.uniform(0.9, 1.0), 2)
+            q_values[2] = round(random.uniform(0.4, 0.6), 2)
+            q_values[3] = round(random.uniform(0.6, 0.8), 2)
+ 
+        elif action == 2:
+            q_values[0] = round(random.uniform(0.6, 0.8), 2)
+            q_values[1] = round(random.uniform(0.4, 0.6), 2)
+            q_values[2] = round(random.uniform(0.9, 1.0), 2)
+            q_values[3] = round(random.uniform(0.4, 0.5), 2)
+
+        elif action == 3: 
+            q_values[0] = round(random.uniform(0.5, 0.6), 2)
+            q_values[1] = round(random.uniform(0.5, 0.6), 2)
+            q_values[2] = round(random.uniform(0.4, 0.6), 2)
+            q_values[3] = round(random.uniform(0.9, 0.9), 2)
+
+        return q_values
 
 
 

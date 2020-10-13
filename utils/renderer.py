@@ -1,3 +1,4 @@
+import os
 import pygame
 from pygame.locals import *
 import numpy as np 
@@ -27,7 +28,7 @@ class Renderer(object):
         self.is_open = True
 
 
-    def render_image(self, image, model_output = None, speed = 0):
+    def render_image(self, image, image_frame = 0, model_output = None, speed = 0):
         """
         Render the given image to the pygame window
         :param image: a grayscale or color image in an arbitrary size. assumes that the channels are the last axis
@@ -44,10 +45,25 @@ class Renderer(object):
 
             if model_output is not None:
                 self.show(q = model_output, speed = speed)
+            bright = pygame.Surface((surface.get_width(), surface.get_height()), flags=pygame.SRCALPHA)
+            bright.fill((40, 40, 40, 0))
+            surface.blit(bright, (0, 140), special_flags=pygame.BLEND_RGBA_ADD)
+
+            
+
             self.screen.blit(surface, (0, 140))
             self.display.flip()
             self.clock.tick()
             self.get_events()
+
+            self.save_image(image = self.screen, frame = image_frame)
+
+
+    def save_image(self, image, frame):
+        image_dir = '/home/niranjan/carla-sumo-gym/experiments/cnn_dqn/test2/images'
+        image_name = image_dir + ('/image-%05d.png' % frame)
+        pygame.image.save(self.screen, image_name)
+
 
     def get_events(self):
         """
@@ -74,7 +90,10 @@ class Renderer(object):
         self.YELLOW = (204, 204, 0)
         self.screen.fill((200, 200, 200))
 
-        font = pygame.font.Font('Roboto-Light.ttf', 20)
+        base_dir = os.path.dirname(os.path.realpath(__file__))
+        font_file = os.path.join(base_dir, 'Roboto-Light.ttf')
+
+        font = pygame.font.Font(font_file, 20)
 
         normalized_q_values = self.normalize_array(q)
 
@@ -99,28 +118,31 @@ class Renderer(object):
         self.screen.blit(surface, (127.5, 10))
         self.screen.blit(text, (143, 120))
 
-        # 2nd action
+
+        # 2th action
         surface = pygame.Surface((120, 100))
         surface.set_colorkey((0,0,0))
         surface.set_alpha(150)
-        pygame.draw.rect(surface, self.RED, (0, 100, 150, -normalized_q_values[2]))
-        text = font.render("brake", True, (0, 0, 0))
+        pygame.draw.rect(surface, self.YELLOW, (0, 100, 150, -normalized_q_values[2]))
+        text = font.render("steer", True, (0, 0, 0))
 
         self.screen.blit(surface, (252.5, 10))
         self.screen.blit(text, (290, 120))
 
-        # 4th action
+        # 3nd action
         surface = pygame.Surface((120, 100))
         surface.set_colorkey((0,0,0))
         surface.set_alpha(150)
-        pygame.draw.rect(surface, self.YELLOW, (0, 100, 150, -normalized_q_values[3]))
-        text = font.render("steer", True, (0, 0, 0))
+        pygame.draw.rect(surface, self.RED, (0, 100, 150, -normalized_q_values[3]))
+        text = font.render("brake", True, (0, 0, 0))
+
 
         self.screen.blit(surface, (377.5, 10))
         self.screen.blit(text, (413, 120))
 
         # Speed
-        font_unit = pygame.font.Font('Roboto-LightItalic.ttf', 20)
+        font_file = os.path.join(base_dir, 'Roboto-LightItalic.ttf')
+        font_unit = pygame.font.Font(font_file, 20)
         unit = font_unit.render("km/hr", 1, (0, 0, 0))
         speed_string = font.render(str(speed), 1, (0, 0, 0))
 
