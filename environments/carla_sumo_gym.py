@@ -47,7 +47,8 @@ class CarlaSumoGym(gym.Env):
         self.client = None
         self.world = None
         self.synchronization = None
-        self.max_speed = 10.0
+        self.max_speed = 3.0
+        self.walker_spawn_points = None
 
 
     def connect_server_client(self, display = True, rendering = True, synchronous = True, town = 'Town11', fps = 10.0, sumo_gui = False):
@@ -71,7 +72,7 @@ class CarlaSumoGym(gym.Env):
         # connect to client
         while True:
             try:
-                carla_sim = CarlaSimulation('localhost', 2000, 10.0) # host, port, step_length
+                carla_sim = CarlaSimulation('localhost', 2000, 0.1) # host, port, step_length
                 self.client = carla_sim.client
                 self.world = self.client.get_world()
 
@@ -110,12 +111,12 @@ class CarlaSumoGym(gym.Env):
 
         # accelerate 
         if action == 0:  
-            acceleration = 2.6
+            acceleration = 1
             desired_speed = ev_speed + dt*acceleration
 
         # deccelerate
         elif action == 1:
-            acceleration = -2.6
+            acceleration = -1
             desired_speed = ev_speed + dt*acceleration
         
         # continue
@@ -125,7 +126,7 @@ class CarlaSumoGym(gym.Env):
 
         # brake    
         elif action == 3:
-            acceleration = -10.0
+            acceleration = -7.5
             desired_speed = ev_speed + dt*acceleration
 
 
@@ -136,6 +137,8 @@ class CarlaSumoGym(gym.Env):
             desired_speed = self.max_speed
 
         traci.vehicle.setSpeed(vehID = 'ev', speed = desired_speed)
+
+        #traci.vehicle.slowDown(vehID = 'ev', speed = desired_speed, duration = dt)
 
 
     def tick(self):
@@ -172,7 +175,7 @@ class CarlaSumoGym(gym.Env):
     def get_ego_vehicle_id(self):
         ego_vehicle = self.world.get_actors().filter('vehicle.audi.etron')
 
-        if len(ego_vehicle) >= 0:
+        if len(ego_vehicle) > 0:
             return ego_vehicle[0].id
         else:
             return 0
