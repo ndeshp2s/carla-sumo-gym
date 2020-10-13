@@ -13,27 +13,41 @@ except IndexError:
     pass
 import carla
 
-from agents.tools.misc import is_within_distance_ahead, is_within_distance
-from utils.misc import is_within_distance_ahead, euclidean_distance
-from environments.urban_env_0.walker_spawn_points import walker_spawn_points, walker_goal_points
+# from agents.tools.misc import is_within_distance_ahead, is_within_distance
+from utils.misc import is_within_distance, is_within_distance_ahead, euclidean_distance, walker_relative_position
+# from environments.urban_env_0.walker_spawn_points import walker_spawn_points, walker_goal_points
 
 
 class Spawner(object):
-    def __init__(self, client = None):
+    def __init__(self, client = None, config = None, spawn_points = None, ev_id = None):
+
+        self.config = None
+
+        self.walker_spawn_points = None
 
         self.connected_to_server = False
 
-        if client is None:
-            self.create_client()
-
-        else:
-            self.client = client
-            self.world = self.client.get_world()
-            self.connected_to_server = True
+        # get ego vehicle 
+        self.ego_vehicle_id = None
         
-        self.pedestrian_list = []
+        # initialize walker list
+        self.walker_list = []
 
-        self.update_config()
+        # client related
+        self.client = None
+        self.world = None
+        self.map = None
+
+
+    def reset(self, config = None, spawn_points = None, ev_id = None):
+        self.create_client()
+        self.config = config
+        self.walker_spawn_points = spawn_points
+        self.ego_vehicle_id = ev_id
+
+        self.world.set_pedestrians_cross_factor(0.70)
+        self.world.set_pedestrians_cross_illegal_factor(0.2)
+
 
 
     def create_client(self):
@@ -41,45 +55,12 @@ class Spawner(object):
             self.client = carla.Client('localhost', 2000)
             self.client.set_timeout(10.0)
             self.world = self.client.get_world()
+            self.map = self.world.get_map()
             self.connected_to_server = True
-            print('here')
 
         except (RuntimeError):
             self.client = None
             self.world = None
-
-
-    def update_config(self, config = None, ped_spawn_points = walker_spawn_points, ev_id = None):
-
-        # initialize all variables to none
-        self.max_dist_ped = None
-        self.min_dist_ped = None
-        self.num_of_ped = None
-        self.ped_cross = None
-        self.ped_cross_illegal = None
-        self.ped_sp_max = None
-        self.ped_sp_min = None
-        self.ped_sp = None
-        self.ev_id = None
-
-
-        if config is not None:
-            self.max_dist_ped = config.maximum_distance_pedestrian
-            self.min_dist_ped = config.minimum_distance_pedestrian
-            self.num_of_ped = config.number_of_pedestrians
-            self.ped_cross = config.pedestrian_crossing_legal
-            self.ped_cross_illegal = config.pedestrian_crossing_illegal
-            self.world.set_pedestrians_cross_factor(self.ped_cross)
-            self.world.set_pedestrians_cross_illegal_factor(self.ped_cross_illegal)
-            self.ped_sp_max = config.pedestrian_spawn_point_maximum
-            self.ped_sp_min = config.pedestrian_spawn_point_minimum
-
-        if ped_spawn_points is not None:
-            self.ped_sp = walker_spawn_points
-
-        if ev_id is not None:
-            self.ev_id = ev_id
-            print(ev_id)
 
 
     def run_step(self):
@@ -87,13 +68,14 @@ class Spawner(object):
         if self.connected_to_server is False:
             return
 
-        if self.ev_id is None or self.ped_sp is None:
+        if self.ego_vehicle_id is None or self.walker_spawn_points is None:
             return
 
         # Get ego vehicle details
-        actor_list = self.world.get_actors()
-        actor = actor_list.find(self.ev_id)
-        ev_trans = actor.get_transform()
+        # actor_list = self.world.get_actors()
+        # actor = actor_list.find(self.ev_id)
+        # ev_trans = actor.get_transform()
+        ev_trans = self.world.get_actor(self.ego_vehicle_id).get_transform()
 
         # delete farther pedestrians
         self.delete_pedestrians(ev_trans)
@@ -107,81 +89,81 @@ class Spawner(object):
 
     def spawn_pedestrians(self, ev_trans):
 
-        if len(self.pedestrian_list) >= 10:
+        if len(self.walker_list) >= self.config.number_of_walkers:
             return
 
         # Find nearby spawn points
         spawn_points = []
-        # for i in range(self.num_of_ped):
-        #     spawn_point = carla.Transform()
-        #     spawn_point.location = self.world.get_random_location_from_navigation()
-        #     if (spawn_point.location != None and is_within_distance_ahead(target_transform = spawn_point, current_transform = ev_trans, max_distance = (self.max_dist_ped), min_distance = self.min_dist_ped)):
-        #         spawn_points.append(spawn_point)
-
         for sp in walker_spawn_points:
-            if is_within_distance_ahead(target_transform = sp, current_transform = ev_trans, max_distance = (self.max_dist_ped), min_distance = self.min_dist_ped):
+            if is_within_distance(tar_loc = sp.location, cur_loc = ev_trans.location, rot = ev_trans.rotation.yaw, max_dist = self.config.walker_spawn_distance_maximum, min_dist = self.config.walker_spawn_distance_minimum):
                 spawn_points.append(sp)
 
-        print(spawn_points)
 
+        # Spawn the walkers
+        for i in range(self.config.number_of_walkers):
+            if len(spawn_points) == 0:
+                return
 
-        # Spawn the pedestrians
-        for i in range(len(spawn_points)):
-            sp = random.choice(spawn_points)
-            pedestrian_bp = random.choice(self.world.get_blueprint_library().filter("walker.pedestrian.*"))
+            # add walker
+            walker = None
 
-            ped = self.world.try_spawn_actor(pedestrian_bp, sp)
-            if ped is not None:
-                self.pedestrian_list.append({"id": ped.id, "controller": None, "start": sp})
+            walker_bp = random.choice(self.world.get_blueprint_library().filter("walker.pedestrian.*"))
+            
+            walker_sp = carla.Transform()
+            walker_sp = random.choice(spawn_points)            
+            # walker_sp.location.x += random.uniform(-0.1, 0.1)
+            # walker_sp.location.y += random.uniform(-0.1, 0.1)
 
-                spawn_points.remove(sp)
+            walker = self.world.try_spawn_actor(walker_bp, walker_sp)
 
-            if len(self.pedestrian_list) >= 10:
-                break 
+            if walker is not None:
+                self.walker_list.append({"id": walker.id, "controller": None, "start": walker_sp})
+                spawn_points.remove(walker_sp)
 
 
     def spawn_controllers(self):
         controller_bp = self.world.get_blueprint_library().find('controller.ai.walker')
 
-        for p in self.pedestrian_list:
-            if p["controller"] is None:
-                ped = self.world.get_actor(p["id"])
-                controller = self.world.spawn_actor(controller_bp, carla.Transform(), attach_to = ped)
-                goal = self.get_goal(goal_points = walker_spawn_points, start = p["start"])
+        for w in self.walker_list:
+            if w["controller"] is None:
+                walker = self.world.get_actor(w["id"])
+                controller = self.world.spawn_actor(controller_bp, carla.Transform(), attach_to = walker)
+                goal = self.get_walker_goal(goal_points = walker_spawn_points, start = w["start"])
                 goal.location.z = 0.2
-                controller.start()
-                controller.go_to_location(self.world.get_random_location_from_navigation())
-                controller.set_max_speed( 0.1 )
 
-                i = self.pedestrian_list.index(p)
-                self.pedestrian_list[i]["controller"] = controller.id
+                controller.start()
+                controller.go_to_location(goal.location)
+                #controller.set_max_speed()
+
+                i = self.walker_list.index(w)
+                self.walker_list[i]["controller"] = controller.id
 
 
     def delete_pedestrians(self, ev_trans):
-
-        for p in self.pedestrian_list:
-            ped = self.world.get_actor(p['id'])
-            if ped is None:
+        for w in self.walker_list:
+            walker = self.world.get_actor(w['id'])
+            if walker is None:
                 continue
 
-            ped_trans = ped.get_transform()
+            walker_trans = walker.get_transform()
 
-            if not is_within_distance(target_location = ped_trans.location, current_location = ev_trans.location, orientation = ev_trans.rotation.yaw, max_distance = self.max_dist_ped, d_angle_th_up = 90, d_angle_th_low = 0):
-                if p["controller"] is not None:
-                    controller = self.world.get_actor(p["controller"])
+            walker_loc = walker_relative_position(walker_trans = walker_trans, ev_trans = ev_trans)
+
+            if walker_loc[0] > self.config.walker_allowed_distance_maximum or walker_loc[0] < self.config.walker_allowed_distance_minimum or abs(walker_loc[1]) > 20:                
+                if w["controller"] is not None:
+                    controller = self.world.get_actor(w["controller"])
                     if controller is not None:
                         controller.stop()
                         controller.destroy()
 
-                ped.destroy()
-                self.pedestrian_list.remove(p)
+                walker.destroy()
+                self.walker_list.remove(w)
 
 
-    def get_goal(self, goal_points, start, crossing = True):
-        #print('get_goal')
+    def get_walker_goal(self, goal_points, start, crossing = True):
         for goal in goal_points:
-            goal_wp = self.world.get_map().get_waypoint(goal.location, project_to_road = True, lane_type = carla.LaneType.Any)
-            start_wp = self.world.get_map().get_waypoint(start.location, project_to_road = True, lane_type = carla.LaneType.Any)
+            goal_wp = self.map.get_waypoint(goal.location, project_to_road = True, lane_type = carla.LaneType.Any)
+            start_wp = self.map.get_waypoint(start.location, project_to_road = True, lane_type = carla.LaneType.Any)
              
 
             if goal_wp is not None and start_wp is not None:
@@ -193,10 +175,22 @@ class Spawner(object):
                     if goal_wp.lane_id == start_wp.lane_id and goal_wp.road_id == start_wp.road_id:
                         return goal_wp.transform
             
-        goal = random.choice(walker_goal_points)
-        goal_wp = self.world.get_map().get_waypoint(goal.location, project_to_road = True, lane_type = carla.LaneType.Any)
+        goal = random.choice(goal_points)
+        goal_wp = self.map.get_waypoint(goal.location, project_to_road = True, lane_type = carla.LaneType.Any)
 
         return goal_wp.transform
+
+
+    def destroy_walkers(self):
+        for w in self.walker_list:
+            walker = self.world.get_actor(w['id'])
+            walker.destroy()
+            self.walker_list.remove(w)
+
+
+
+    def close(self):
+        self.destroy_walkers()
 
 
 
