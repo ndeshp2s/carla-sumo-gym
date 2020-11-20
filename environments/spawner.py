@@ -1,7 +1,7 @@
 import sys, os
 import glob
-
 import random
+import time
 
 # carla library
 try:
@@ -45,8 +45,11 @@ class Spawner(object):
         self.walker_spawn_points = spawn_points
         self.ego_vehicle_id = ev_id
 
-        self.world.set_pedestrians_cross_factor(0.70)
-        self.world.set_pedestrians_cross_illegal_factor(0.2)
+        self.world.set_pedestrians_cross_factor(self.config.walker_pedestrians_crossing)
+        self.world.set_pedestrians_cross_illegal_factor(self.config.walker_pedestrians_crossing_illegal)
+
+        # initialize walker list
+        self.walker_list = []
 
 
 
@@ -63,7 +66,10 @@ class Spawner(object):
             self.world = None
 
 
-    def run_step(self):
+    def run_step(self, step = 0):
+
+        if not step%self.config.spawner_frequency == 0:
+            return
 
         if self.connected_to_server is False:
             return
@@ -98,10 +104,10 @@ class Spawner(object):
             if is_within_distance(tar_loc = sp.location, cur_loc = ev_trans.location, rot = ev_trans.rotation.yaw, max_dist = self.config.walker_spawn_distance_maximum, min_dist = self.config.walker_spawn_distance_minimum):
                 spawn_points.append(sp)
 
-
+        print(len(spawn_points))
         # Spawn the walkers
         for i in range(self.config.number_of_walkers):
-            if len(spawn_points) == 0:
+            if len(spawn_points) == 0 or len(self.walker_list) >= self.config.number_of_walkers:
                 return
 
             # add walker
@@ -133,7 +139,7 @@ class Spawner(object):
 
                 controller.start()
                 controller.go_to_location(goal.location)
-                #controller.set_max_speed()
+                controller.set_max_speed(1 + random.random())
 
                 i = self.walker_list.index(w)
                 self.walker_list[i]["controller"] = controller.id
@@ -191,6 +197,7 @@ class Spawner(object):
 
     def close(self):
         self.destroy_walkers()
+        time.sleep(1.0)
 
 
 
