@@ -2,6 +2,67 @@ import math
 import numpy as np
 import transforms3d
 
+def get_index(val, start, stop, num):
+
+    grids = np.linspace(start, stop, num)
+    features = np.zeros(num)
+
+    #Check extremes
+    if val <= grids[0] or val > grids[-1]:
+        return features, False
+
+    for i in range(len(grids) - 1):
+        if val >= grids[i] and val < grids[i + 1]:
+            features[i] = 1
+
+    return features, True
+
+
+def get_speed(vehicle):
+    """
+    Compute speed of a vehicle in Km/h.
+        :param vehicle: the vehicle for which speed is calculated
+        :return: speed as a float in Km/h
+    """
+    vel = vehicle.get_velocity()
+
+    return 3.6 * math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2)
+
+def get_speed(vehicle):
+    """
+    Compute speed of a vehicle in Km/h.
+        :param vehicle: the vehicle for which speed is calculated
+        :return: speed as a float in Km/h
+    """
+    vel = vehicle.get_velocity()
+
+    return 3.6 * math.sqrt(vel.x ** 2 + vel.y ** 2 + vel.z ** 2)
+
+def compute_relative_heading(source_transform, destination_transform):
+    d_heading = (destination_transform.rotation.yaw + 360) % 360
+    s_heading = (source_transform.rotation.yaw + 360) % 360
+    head_rel = d_heading - s_heading
+    head_rel = (head_rel + 360) % 360
+    head_rel = round(head_rel, 2)
+
+    return head_rel
+
+
+def compute_relative_position(source_transform, destination_transform):
+    d_xyz = np.array([destination_transform.location.x, destination_transform.location.y, destination_transform.location.z])
+    s_xyz = np.array([source_transform.location.x, source_transform.location.y, source_transform.location.z])
+    pos = d_xyz - s_xyz
+
+    pitch = math.radians(source_transform.rotation.pitch)
+    roll = math.radians(source_transform.rotation.roll)
+    yaw = math.radians(source_transform.rotation.yaw)
+
+    R = transforms3d.euler.euler2mat(roll, pitch, yaw).T
+    pos_rel = np.dot(R, pos)
+
+    return pos_rel
+
+
 def is_within_distance(tar_loc, cur_loc, rot, max_dist, min_dist, spawn = True):
     if not spawn:
         if abs(tar_loc.x - cur_loc.x) > carla_config.ped_max_dist or abs(tar_loc.y - cur_loc.y) > carla_config.ped_max_dist:
@@ -87,3 +148,33 @@ def load_parameters(file, params):
     params.testing_steps_per_episode = int(params_dict['testing_steps_per_episode'])
 
     return params
+
+
+def normalize_data(data, min_val, max_val):
+    return (data - min_val) / (max_val - min_val)
+
+def ray_intersection(pos_one, pos_two, vec_one, vec_two):
+    p1_x = pos_one.x
+    p1_y = pos_one.y
+    p2_x = pos_two.x
+    p2_y = pos_two.y
+    n1_x = ego_veh_forward_vector.x
+    n1_y = ego_veh_forward_vector.y
+            # n2_x = walker_forward_vector.x
+            # n2_y = walker_forward_vector.y
+            # u = (p1_y * n2_x + n2_y * p2_x - p2_y * n2_x - n2_y * p1_x) / (n1_x * n2_y - n1_y * n2_x)
+            # v = (p1_x + n1_x * u - p2_x) / n2_x
+
+def ray_intersection(p1, p2, n1, n2):
+    if (n1.y * n2.x - n1.x * n2.y) == 0.0 or n2.x == 0.0:
+        return False
+
+    u = (p1.x * n2.y + p2.y * n2.x - p2.x * n2.y - p1.y * n2.x) / (n1.y * n2.x - n1.x * n2.y)
+    v = (p1.x + n1.x * u - p2.x) / n2.x
+
+    print(u, v)
+
+    if u > 0 and v > 0:
+        return True
+
+    return False
