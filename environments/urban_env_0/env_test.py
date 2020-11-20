@@ -15,7 +15,7 @@ def test_one():
 		for i in range(10):
 			env0.reset()
 			for j in range(1000):
-				action = 3#input('Enter action: ')
+				action = input('Enter action: ')
 				action = int(action)
 				env0.step(action = action)
 				time.sleep(0.2)
@@ -36,21 +36,19 @@ def test_two():
 	from environments.urban_env_0 import config
 
 	env0 = gym.make('Urban-v0')
-
-	
-    
-
+	spawner = Spawner()
 
 
 	try:
 		for i in range(10):
 			env0.reset()
 			time.sleep(2.0)
-			spawner = Spawner()
-			spawner.update_config(config = config, ev_id = env0.get_ego_vehicle_id())
+			spawner.reset(config = env0.config, spawn_points = env0.walker_spawn_points, ev_id = env0.get_ego_vehicle_id())
+			
 			for j in range(1000):
 				action = input('Enter action: ')
 				action = int(action)
+				print(action)
 				env0.step(action = action)
 				spawner.run_step()
 				time.sleep(0.2)
