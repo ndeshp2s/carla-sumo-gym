@@ -17,36 +17,37 @@ class EpsilonDecay:
 
 
 
-
-
 # Testing
-from torch.utils.tensorboard import SummaryWriter
-writer = SummaryWriter()
+DEBUG = 0
 
-episodes = 1000
-steps = 50
-epsilon_start = 1.0
-epsilon_end = 0.1
-epsilon_decay = 5e-5
-total_steps = episodes
+if DEBUG:
+	from torch.utils.tensorboard import SummaryWriter
+	writer = SummaryWriter()
 
-epsilon_decay = EpsilonDecay(epsilon_start = epsilon_start, epsilon_end = epsilon_end, epsilon_decay = epsilon_decay, total_steps = total_steps)
+	episodes = 1000
+	steps = 50
+	epsilon_start = 1.0
+	epsilon_end = 0.1
+	epsilon_decay = 5e-5
+	total_steps = episodes
 
-# Testing for exponential update
-# frame_counter = 0
-# for i in range(episodes):
-# 	for j in range(steps):
-# 		epsilon = epsilon_decay.update_expo(frame_id = frame_counter)
-# 		writer.add_scalar('Epsilon decay exponential', epsilon, frame_counter)
-# 		frame_counter += 1
+	epsilon_decay = EpsilonDecay(epsilon_start = epsilon_start, epsilon_end = epsilon_end, epsilon_decay = epsilon_decay, total_steps = total_steps)
+
+	# Testing for exponential update
+	# frame_counter = 0
+	# for i in range(episodes):
+	# 	for j in range(steps):
+	# 		epsilon = epsilon_decay.update_expo(frame_id = frame_counter)
+	# 		writer.add_scalar('Epsilon decay exponential', epsilon, frame_counter)
+	# 		frame_counter += 1
 
 
-# Testing for simple update
-epsilon = epsilon_start
-frame_counter = 0
-for i in range(episodes):
-	#for j in range(steps):
-		epsilon = epsilon_decay.update_linear(current_eps = epsilon)
-		writer.add_scalar('Epsilon decay simple', epsilon, i)
-		frame_counter += 1
-print('done')
+	# Testing for simple update
+	epsilon = epsilon_start
+	frame_counter = 0
+	for i in range(episodes):
+		#for j in range(steps):
+			epsilon = epsilon_decay.update_linear(current_eps = epsilon)
+			writer.add_scalar('Epsilon decay simple', epsilon, i)
+			frame_counter += 1
+	print('done')
