@@ -39,13 +39,16 @@ from sumo_integration.sumo_simulation import SumoSimulation
 from run_synchronization import SimulationSynchronization
 
 from util.netconvert_carla import netconvert_carla
+from utils.carla_planner import Planner
 
 
 class CarlaSumoGym(gym.Env):
     def __init__(self):
         super(CarlaSumoGym, self).__init__()
+        self.server = None
         self.client = None
         self.world = None
+        self.map = None
         self.synchronization = None
         self.max_speed = 3.0
         self.walker_spawn_points = None
@@ -53,28 +56,26 @@ class CarlaSumoGym(gym.Env):
 
     def connect_server_client(self, display = True, rendering = True, synchronous = True, town = 'Town11', fps = 10.0, sumo_gui = False):
 
-        self.kill_carla_server()
-
         # open the server
-        p = None
+        self.server = None
         cmd = [path.join(environ.get('CARLA_SERVER'), 'CarlaUE4.sh')]
 
         if not display:
             env_ =  {**os.environ, 'DISPLAY': ''}
             cmd.append(" -opengl")
-            p = subprocess.Popen(cmd, env=env_)
+            self.server = subprocess.Popen(cmd, env=env_)
 
         else:
             cmd.append(" -opengl")
-            p = subprocess.Popen(cmd)
+            self.server = subprocess.Popen(cmd)
 
-        
         # connect to client
         while True:
             try:
                 carla_sim = CarlaSimulation('localhost', 2000, 0.1) # host, port, step_length
                 self.client = carla_sim.client
                 self.world = self.client.get_world()
+                self.map = self.world.get_map()
 
                 if self.world.get_map().name != town:
                     carla.Client('localhost', 2000, 10).load_world(town)
@@ -105,18 +106,19 @@ class CarlaSumoGym(gym.Env):
         self.synchronization = SimulationSynchronization(sumo_sim, carla_sim, 'none', True, False)
 
 
-    def take_action(self, action):
+    def take_action(self, max_speed = 15, action = 3):
         dt = traci.simulation.getDeltaT()
-        ev_speed = self.get_ego_vehicle_speed()
+        ev_speed = self.get_ego_vehicle_speed(kmph = False)
+        desired_speed = 0.0
 
         # accelerate 
         if action == 0:  
-            acceleration = 1
+            acceleration = 2.5
             desired_speed = ev_speed + dt*acceleration
 
         # deccelerate
         elif action == 1:
-            acceleration = -1
+            acceleration = -2.5
             desired_speed = ev_speed + dt*acceleration
         
         # continue
@@ -126,19 +128,17 @@ class CarlaSumoGym(gym.Env):
 
         # brake    
         elif action == 3:
-            acceleration = -7.5
+            acceleration = -5.0
             desired_speed = ev_speed + dt*acceleration
 
 
         if desired_speed < 0.00:
             desired_speed = 0.0
 
-        if desired_speed > self.max_speed:
-            desired_speed = self.max_speed
+        if desired_speed > 15:
+            desired_speed = 15
 
         traci.vehicle.setSpeed(vehID = 'ev', speed = desired_speed)
-
-        #traci.vehicle.slowDown(vehID = 'ev', speed = desired_speed, duration = dt)
 
 
     def tick(self):
@@ -158,7 +158,19 @@ class CarlaSumoGym(gym.Env):
         self.tick()
 
 
-    def get_ego_vehicle_speed(self, kmph = False):
+    def init_planner(self):
+        self.planner = Planner(self.get_ego_vehicle())
+        #self.planner.initialize(self.get_ego_vehicle())
+        self.planner.set_destination((-140.0, -140.0, 0.2))
+        # ego_vehicle = self.get_ego_vehicle()
+        # self.local_planner = LocalPlanner(vehicle = ego_vehicle)
+        # # set destination
+        # start_waypoint = ego_vehicle.get_location()
+        # end_waypoint = self._map.get_waypoint(carla.Location(-140.0, 40.25, 0.1))
+        # self.local_planner.set_destination()
+
+
+    def get_ego_vehicle_speed(self, kmph = True):
         ev_data = traci.vehicle.getSubscriptionResults('ev')
         ev_speed = ev_data[traci.constants.VAR_SPEED]
 
@@ -180,6 +192,24 @@ class CarlaSumoGym(gym.Env):
         else:
             return 0
 
+    def get_ego_vehicle(self):
+        ego_vehicle = self.world.get_actors().filter('vehicle.audi.etron')
+        if len(ego_vehicle) > 0:
+            return ego_vehicle[0]
+        else:
+            return 0
+
+
+
+    def get_ego_vehicle_transform(self):
+        ego_vehicle = self.world.get_actors().filter('vehicle.audi.etron')
+
+        return ego_vehicle[0].get_transform()
+
+    def get_ego_vehicle_bounding_box(self):
+        ego_vehicle = self.world.get_actors().filter('vehicle.audi.etron')
+
+        return ego_vehicle[0].bounding_box
 
     def kill_carla_server(self):
         binary = 'CarlaUE4.sh'
@@ -225,5 +255,6 @@ class CarlaSumoGym(gym.Env):
     def clear_all(self):
         self.client = None
         self.world = None
+        self.map = None
         self.synchronization = None
 
