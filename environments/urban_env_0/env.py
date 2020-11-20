@@ -81,8 +81,6 @@ class UrbanEnv(CarlaSumoGym):
 
         self.tick()
 
-        #self.init_planner()
-
         self.init_system()
 
         if config.rendering:

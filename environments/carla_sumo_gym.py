@@ -39,7 +39,6 @@ from sumo_integration.sumo_simulation import SumoSimulation
 from run_synchronization import SimulationSynchronization
 
 from util.netconvert_carla import netconvert_carla
-from utils.carla_planner import Planner
 
 
 class CarlaSumoGym(gym.Env):
@@ -156,18 +155,6 @@ class CarlaSumoGym(gym.Env):
 
         # tick to register the vehicle in the simulation environment
         self.tick()
-
-
-    def init_planner(self):
-        self.planner = Planner(self.get_ego_vehicle())
-        #self.planner.initialize(self.get_ego_vehicle())
-        self.planner.set_destination((-140.0, -140.0, 0.2))
-        # ego_vehicle = self.get_ego_vehicle()
-        # self.local_planner = LocalPlanner(vehicle = ego_vehicle)
-        # # set destination
-        # start_waypoint = ego_vehicle.get_location()
-        # end_waypoint = self._map.get_waypoint(carla.Location(-140.0, 40.25, 0.1))
-        # self.local_planner.set_destination()
 
 
     def get_ego_vehicle_speed(self, kmph = True):
