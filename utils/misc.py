@@ -1,3 +1,5 @@
+import os
+import shutil
 import math
 import numpy as np
 import transforms3d
@@ -178,3 +180,10 @@ def ray_intersection(p1, p2, n1, n2):
         return True
 
     return False
+
+
+def create_directory(dir, recreate = True):
+    if recreate:
+        if os.path.exists(dir):
+            shutil.rmtree(dir)
+    os.makedirs(dir)
