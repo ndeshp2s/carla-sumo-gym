@@ -49,6 +49,21 @@ def main(args):
         finally:
             print('\ndone.')
 
+
+    if args.retrain:
+        trainer = Trainer(env = env, agent = agent, spawner = spawner, params = params, exp_dir = experiment_dir, retrain = True)
+
+        try:
+            trainer.retrain()
+
+        except KeyboardInterrupt:
+            trainer.close()
+            sys.exit(0)
+
+        finally:
+            print('\ndone.')
+
+
     if args.test:
         tester = Tester(env = env, agent = None, spawner = spawner, params = params)
       

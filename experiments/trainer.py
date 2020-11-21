@@ -1,12 +1,13 @@
 import os
-import shutil
+import torch
 from torch.utils.tensorboard import SummaryWriter
 
 from utils.epsilon_decay import EpsilonDecay
+from utils.misc import create_directory
 
 DEBUG = 0
 class Trainer:
-    def __init__(self, env, agent, spawner, params, exp_dir):
+    def __init__(self, env, agent, spawner, params, exp_dir, retrain = False):
         self.env = env
         self.agent = agent
         self.spawner = spawner
@@ -15,18 +16,20 @@ class Trainer:
         self.epsilon_decay = EpsilonDecay(epsilon_start = self.params.hyperparameters['epsilon_start'], epsilon_end = self.params.hyperparameters['epsilon_end'], \
                                           epsilon_decay = self.params.hyperparameters['epsilon_decay'], total_steps = self.params.hyperparameters['epsilon_steps'])
 
-        log_dir = os.path.join(exp_dir, 'logs')
-        if os.path.exists(log_dir):
-            shutil.rmtree(log_dir)
-            os.makedirs(log_dir)
+        self.epsilon = self.params.hyperparameters['epsilon_start']
 
+        log_dir = os.path.join(exp_dir, 'logs')
+        if not retrain: create_directory(dir = log_dir)
         self.writer = SummaryWriter(log_dir = log_dir)
 
+        # # checkpoint directory
+        self.checkpoint_dir = os.path.join(exp_dir, 'checkpoints')
+        if not retrain: create_directory(dir = self.checkpoint_dir)
 
 
-    def train(self, pre_eps = -1):
-        epsilon = self.params.hyperparameters['epsilon_start']
-        total_steps = 0
+    def train(self, pre_eps = -1, total_steps = 0):
+        
+        total_steps = total_steps
 
         for ep in range(pre_eps + 1, self.params.training_episodes):
     
@@ -43,7 +46,7 @@ class Trainer:
                     action = input('Enter action: ')
                     action = int(action)
                 else:
-                    action = self.agent.pick_action(state, epsilon)
+                    action = self.agent.pick_action(state, self.epsilon)
 
                 # Execute action for n times
                 #self.spawner.run_step(step) # running spawner step
@@ -75,6 +78,12 @@ class Trainer:
                     self.env.close()
                     break
 
+            # epsilon update
+            self.epsilon = self.epsilon_decay.update_linear(current_eps = self.epsilon)
+            self.writer.add_scalar('Epsilon decay 1', self.epsilon, ep)
+            self.writer.add_scalar('Epsilon decay', self.epsilon, total_steps)
+
+
             # Print details of the episode
             print("--------------------------------------------------------------------")
             print("Episode: %d, Reward: %5f, Loss: %4f" % (ep, episode_reward, loss))
@@ -85,12 +94,29 @@ class Trainer:
             self.writer.add_scalar('Reward per episode', episode_reward, ep)
             self.writer.add_scalar('Steps per episode', episode_steps, ep)
 
-            # epsilon update
-            epsilon = self.epsilon_decay.update_linear(current_eps = epsilon)
+            # update training parameters
+            checkpoint = {'state_dict': self.agent.local_network.state_dict(),
+                            'optimizer': self.agent.optimizer.state_dict(),
+                            'episode': ep,
+                            'epsilon': self.epsilon,
+                            'total_steps': total_steps}
+            torch.save(checkpoint, self.checkpoint_dir + '/model_and_parameters.pth')  
 
 
     def retrain(self):
-        None
+        # load training parameters
+        checkpoint = torch.load(self.checkpoint_dir + '/model_and_parameters.pth')
+        self.agent.local_network.load_state_dict(checkpoint['state_dict'])
+        self.agent.target_network.load_state_dict(checkpoint['state_dict'])
+        self.agent.optimizer.load_state_dict(checkpoint['optimizer'])
+        previous_episode = checkpoint['episode']
+        total_steps = checkpoint['total_steps']
+        self.epsilon = checkpoint['epsilon']
+
+        self.agent.local_network.train()
+        self.agent.target_network.train()
+
+        self.train(pre_eps = previous_episode, total_steps = total_steps)
 
 
     def close(self):
