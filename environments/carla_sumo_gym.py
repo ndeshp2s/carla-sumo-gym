@@ -104,6 +104,8 @@ class CarlaSumoGym(gym.Env):
         sumo_sim =  SumoSimulation(cfg_file=cfg_file, step_length=0.1, host=None, port=None, sumo_gui=sumo_gui, client_order=1)
         self.synchronization = SimulationSynchronization(sumo_sim, carla_sim, 'none', True, False)
 
+        time.sleep(1.0)
+
 
     def take_action(self, max_speed = 15, action = 3):
         dt = traci.simulation.getDeltaT()
@@ -233,6 +235,8 @@ class CarlaSumoGym(gym.Env):
 
         if self.synchronization is not None:
             self.synchronization.close()
+
+        time.sleep(1)
 
         self.kill_carla_server()
 
