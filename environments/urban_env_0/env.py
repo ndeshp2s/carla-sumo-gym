@@ -46,6 +46,8 @@ class UrbanEnv(CarlaSumoGym):
         self.observation_space = spaces.Box(low = 0, high = 255, shape = (config.grid_height, config.grid_width, config.features), dtype = np.uint8)
         self.action_space = spaces.Discrete(config.N_DISCRETE_ACTIONS)
 
+        self.connect_server_client(display = config.display, rendering = config.rendering, town = config.town, fps = config.fps, sumo_gui = config.sumo_gui)
+
 
     def step(self, action = None):
 
@@ -70,28 +72,37 @@ class UrbanEnv(CarlaSumoGym):
 
 
     def reset(self):
-
         self.close()
-
-        self.connect_server_client(display = config.display, rendering = config.rendering, town = config.town, fps = config.fps, sumo_gui = config.sumo_gui)
-        
+        self.connect_server_client(server = False, display = config.display, rendering = config.rendering, town = config.town, fps = config.fps, sumo_gui = config.sumo_gui)
         self.spawn_ego_vehicle(position = config.start_position, type_id = config.ev_type)
-
         self.add_sensors()
-
         self.tick()
-
-        self.init_system()
-
-        if config.rendering:
-            self.renderer = Renderer()
-            self.renderer.create_screen(config.rendering_screen_x, config.rendering_screen_y)
-
         state = self.get_observation()
-
-        print('Server and client Connected')
-
         return state
+
+    # def reset(self):
+
+    #     self.close()
+
+    #     self.connect_server_client(display = config.display, rendering = config.rendering, town = config.town, fps = config.fps, sumo_gui = config.sumo_gui)
+        
+    #     self.spawn_ego_vehicle(position = config.start_position, type_id = config.ev_type)
+
+    #     self.add_sensors()
+
+    #     self.tick()
+
+    #     self.init_system()
+
+    #     if config.rendering:
+    #         self.renderer = Renderer()
+    #         self.renderer.create_screen(config.rendering_screen_x, config.rendering_screen_y)
+
+    #     state = self.get_observation()
+
+    #     print('Server and client Connected')
+
+    #     return state
 
 
     def get_observation(self):

@@ -53,20 +53,22 @@ class CarlaSumoGym(gym.Env):
         self.walker_spawn_points = None
 
 
-    def connect_server_client(self, display = True, rendering = True, synchronous = True, town = 'Town11', fps = 10.0, sumo_gui = False):
+    def connect_server_client(self, server = True, display = True, rendering = True, synchronous = True, town = 'Town11', fps = 10.0, sumo_gui = False):
+        if server:
+            self.kill_carla_server()
 
-        # open the server
-        self.server = None
-        cmd = [path.join(environ.get('CARLA_SERVER'), 'CarlaUE4.sh')]
+            # open the server
+            self.server = None
+            cmd = [path.join(environ.get('CARLA_SERVER'), 'CarlaUE4.sh')]
 
-        if not display:
-            env_ =  {**os.environ, 'DISPLAY': ''}
-            cmd.append(" -opengl")
-            self.server = subprocess.Popen(cmd, env=env_)
+            if not display:
+                env_ =  {**os.environ, 'DISPLAY': ''}
+                cmd.append(" -opengl")
+                self.server = subprocess.Popen(cmd, env=env_)
 
-        else:
-            cmd.append(" -opengl")
-            self.server = subprocess.Popen(cmd)
+            else:
+                cmd.append(" -opengl")
+                self.server = subprocess.Popen(cmd)
 
         # connect to client
         while True:
@@ -238,7 +240,7 @@ class CarlaSumoGym(gym.Env):
 
         time.sleep(1)
 
-        self.kill_carla_server()
+        #self.kill_carla_server()
 
         self.clear_all()
 
