@@ -46,7 +46,7 @@ class Trainer:
                     action = input('Enter action: ')
                     action = int(action)
                 else:
-                    action = self.agent.pick_action(state, self.epsilon)
+                    action = 3#self.agent.pick_action(state, self.epsilon)
 
                 # Execute action for n times
                 #self.spawner.run_step(step) # running spawner step
@@ -64,8 +64,8 @@ class Trainer:
                 total_steps += 1
 
                 # compute the loss
+                loss = 0
                 if self.agent.memory.__len__() > self.params.hyperparameters['batch_size']:
-                    loss = 0
                     loss = self.agent.learn(batch_size = self.params.hyperparameters['batch_size'])
                     # save the loss
                     self.writer.add_scalar('Loss per step', loss, total_steps)
@@ -78,15 +78,9 @@ class Trainer:
                     self.env.close()
                     break
 
-            # epsilon update
-            self.epsilon = self.epsilon_decay.update_linear(current_eps = self.epsilon)
-            self.writer.add_scalar('Epsilon decay 1', self.epsilon, ep)
-            self.writer.add_scalar('Epsilon decay', self.epsilon, total_steps)
-
-
             # Print details of the episode
             print("--------------------------------------------------------------------")
-            print("Episode: %d, Reward: %5f, Loss: %4f" % (ep, episode_reward, loss))
+            print("Episode: %d, Reward: %5f, Loss: %4f, Epsilon: %4f" % (ep, episode_reward, loss, self.epsilon))
             print("--------------------------------------------------------------------")
 
 
@@ -100,7 +94,11 @@ class Trainer:
                             'episode': ep,
                             'epsilon': self.epsilon,
                             'total_steps': total_steps}
-            torch.save(checkpoint, self.checkpoint_dir + '/model_and_parameters.pth')  
+            torch.save(checkpoint, self.checkpoint_dir + '/model_and_parameters.pth')
+
+            # epsilon update
+            self.epsilon = self.epsilon_decay.update_linear(current_eps = self.epsilon)
+            self.writer.add_scalar('Epsilon decay', self.epsilon, ep)
 
 
     def retrain(self):
