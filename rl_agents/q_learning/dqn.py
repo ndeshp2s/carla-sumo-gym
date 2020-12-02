@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torch.optim as optim
-from neural_networks.fc import NeuralNetwork
+from neural_networks.cnn import NeuralNetwork
 from rl_agents.replay_buffer import ReplayBuffer
 
 class DQNAgent:

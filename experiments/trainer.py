@@ -46,7 +46,7 @@ class Trainer:
                     action = input('Enter action: ')
                     action = int(action)
                 else:
-                    action = 3#self.agent.pick_action(state, self.epsilon)
+                    action = self.agent.pick_action(state, self.epsilon)
 
                 # Execute action for n times
                 #self.spawner.run_step(step) # running spawner step

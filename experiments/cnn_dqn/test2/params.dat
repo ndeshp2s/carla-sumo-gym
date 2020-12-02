@@ -1,7 +1,0 @@
-# Training related
-training_episodes = 1000
-training_steps_per_episode = 1000
-
-# Testing related
-testing_episodes = 100
-testing_steps_per_episode = 1000

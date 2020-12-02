@@ -25,7 +25,7 @@ rgb_loc_z = 4.0#2.0
 sem_sensor = False
 
 # Display True
-display = False
+display = True
 
 # Rendering related
 render = False

@@ -21,6 +21,7 @@ def main(args):
     # Directory of current experiment
     base_dir = os.path.dirname(os.path.realpath(__file__))
     experiment_dir = os.path.join(base_dir, args.agent_type, args.dir)
+    print(base_dir, experiment_dir)
 
     # load traing/testing parameters
     params = load_parameters(file = os.path.join(experiment_dir, 'params.dat'))
@@ -90,7 +91,7 @@ if __name__ == '__main__':
     parser.add_argument('--parameters', dest='parameters', action='store_true', help='file for training/testing parameters')
     parser.add_argument('--dir', default = None, type=str, help='directory for the experiment')
     parser.add_argument('--env', default='Urban-v0', type=str, help='gym environment')
-    parser.add_argument('--agent_type', default='fc_dqn', type=str, help='type of RL agent used')
+    parser.add_argument('--agent_type', default='cnn_dqn', type=str, help='type of RL agent used')
     args = parser.parse_args()
 
     main(parser.parse_args())
