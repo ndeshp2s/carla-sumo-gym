@@ -271,15 +271,15 @@ class Renderer(object):
 
 
     def render_grid(self, grid):
-        WIDTH = 20
-        HEIGHT = 20
+        WIDTH = 20/2
+        HEIGHT = 20/2
         MARGIN = 5
         
         font = pygame.font.SysFont('arial', 12, False)
         surface = pygame.Surface((self.grid_window_size[0], self.grid_window_size[1]))
         surface.fill(self.WHITE)
         BLACK = (0, 0, 0)
-        for row in range(30):
+        for row in range(30*2):
             row_cord = MARGIN + row * HEIGHT
 
             if row < 10:
@@ -289,7 +289,7 @@ class Renderer(object):
             text = font.render(indent + str(row - 4), 1, (0, 0, 0))
             surface.blit(pygame.transform.flip(text, False, True), (5 + 20 * WIDTH, row_cord))
 
-            for column in range(20):
+            for column in range(20*2):
                 col_cord = MARGIN + column * WIDTH
 
                 if column < 10:
