@@ -64,11 +64,11 @@ class UrbanEnv(CarlaSumoGym):
         reward = None
         done = None
         state = self.get_observation()
-        reward, done = self.get_reward()
+        reward, done, info = self.get_reward()
 
         self.render(model_output = q_values, speed = self.get_ego_vehicle_speed(kmph = True), grid = state[:,:,3])
 
-        return state, reward, done
+        return state, reward, done, info
 
 
     def reset(self):
@@ -173,6 +173,7 @@ class UrbanEnv(CarlaSumoGym):
 
     def get_reward(self):
         done = False
+        info = 'None'
         total_reward = d_reward = nc_reward = c_reward = 0.0
 
         # reward for speed
@@ -206,8 +207,10 @@ class UrbanEnv(CarlaSumoGym):
             if ego_vehicle_speed > 0.0:
                 c_reward = -10
                 done = True
+                info = 'Normal Collision'
             else:
                 done = True
+                info = 'Pedestrian Collision'
            
 
         # check goal reached
@@ -218,11 +221,12 @@ class UrbanEnv(CarlaSumoGym):
 
         if dist <= 10:
             done = True
+            info = 'Goal Reached'
 
         total_reward = d_reward + c_reward + nc_reward
         total_reward = round(total_reward, 4)
 
-        return total_reward, done
+        return total_reward, done, info
 
 
     def orientation(self, p, q, r):

@@ -5,7 +5,7 @@ from torch.utils.tensorboard import SummaryWriter
 from utils.epsilon_decay import EpsilonDecay
 from utils.misc import create_directory
 
-DEBUG = 1
+DEBUG = 0
 class Trainer:
     def __init__(self, env, agent, spawner, params, exp_dir, retrain = False):
         self.env = env
@@ -52,7 +52,7 @@ class Trainer:
                 self.spawner.run_step(step) # running spawner step
 
                 for i in range(0, self.params.action_repeat):
-                    next_state, reward, done = self.env.step(action)
+                    next_state, reward, done, info = self.env.step(action)
 
                 # Add experience to memory of local network
                 self.agent.add(state = state, action = action, reward = reward, next_state = next_state, done = done)
@@ -79,9 +79,9 @@ class Trainer:
                     break
 
             # Print details of the episode
-            print("--------------------------------------------------------------------")
-            print("Episode: %d, Reward: %5f, Loss: %4f, Epsilon: %4f" % (ep, episode_reward, loss, self.epsilon))
-            print("--------------------------------------------------------------------")
+            print("-----------------------------------------------------------------------------------")
+            print("Episode: %d, Reward: %5f, Loss: %4f, Epsilon: %4f, Steps: %d, Info: %s" % (ep, episode_reward, loss, self.epsilon, episode_steps, info))
+            print("-----------------------------------------------------------------------------------")
 
 
             # Save episode reward, steps and loss
