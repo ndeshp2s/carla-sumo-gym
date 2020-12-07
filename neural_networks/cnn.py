@@ -28,11 +28,11 @@ class NeuralNetwork(nn.Module):
         self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = (3, 2), stride = 1)
         self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = (3, 2), stride = 1)
 
-        self.avg_pool = nn.AvgPool2d(kernel_size = (3, 2), stride = 2)
+        self.avg_pool = nn.AvgPool2d(kernel_size = (3, 2), stride = (3, 2))
 
-        self.fc1 = nn.Linear(64, 32)
-        self.fc2 = nn.Linear(32, 16)
-        self.fc3 = nn.Linear(16, self.output_size)
+        self.fc1 = nn.Linear(256, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, self.output_size)
 
         self.relu = nn.ReLU()
 
@@ -75,7 +75,7 @@ class NeuralNetwork(nn.Module):
 DEBUG = 0
 
 if DEBUG:
-    state = np.zeros([30, 20, 4])
+    state = np.zeros([60, 40, 4])
     print(state.shape)
 
     batch_size = 32
