@@ -25,6 +25,8 @@ from environments.urban_env_0.crosswalk_zones import at_crosswalk
 from utils.misc import euclidean_distance, compute_relative_position, compute_relative_heading, normalize_data, get_speed, get_index, ray_intersection
 from agents.tools.misc import is_within_distance_ahead, is_within_distance, compute_distance
 
+DEBUG = 0
+
 class UrbanEnv(CarlaSumoGym):
     def __init__(self):
         super(UrbanEnv, self).__init__()
@@ -105,8 +107,8 @@ class UrbanEnv(CarlaSumoGym):
 
 
         # Fill grid with ego vehicle position
-        for i in range(-1, 2):
-            for j in range(-1, 2):
+        for i in range(0, 1):
+            for j in range(0, 1):
                 x_discrete, status = get_index(val = i, start = self.config.grid_height_min, stop = self.config.grid_height_max, num = self.config.grid_height)
                 y_discrete, status = get_index(val = j, start = self.config.grid_width_min, stop = self.config.grid_width_max, num = self.config.grid_width)
 
@@ -184,44 +186,39 @@ class UrbanEnv(CarlaSumoGym):
             d_reward = -0.1
 
         # reward for collision
-        # walker_list = self.world.get_actors().filter('walker.pedestrian.*')
-        # nc_dist_max = (ego_vehicle_speed*ego_vehicle_speed)/2*2.5
-        # nc_dist_min = (ego_vehicle_speed*ego_vehicle_speed)/2*5.0
-        # collision, near_collision, walker, distance = self.find_collision(walker_list = walker_list, range = nc_dist_max)
+        walker_list = self.world.get_actors().filter('walker.pedestrian.*')
+        nc_dist_max = (ego_vehicle_speed*ego_vehicle_speed)/(2*2.5) + 2.5
+        nc_dist_min = (ego_vehicle_speed*ego_vehicle_speed)/(2*7.5) + 2.5
+        nc_dist_max = round(nc_dist_max, 2)
+        nc_dist_min = round(nc_dist_min, 2)
+        collision, near_collision, walker, distance = self.find_collision(walker_list = walker_list, range = nc_dist_max)
+        if near_collision:
+            nc_reward = normalize_data(data = distance, min_val = nc_dist_max, max_val = 0)
 
-        # if not walker == None:
-        #     self.world.debug.draw_box(carla.BoundingBox(walker.get_transform().location, walker.bounding_box.extent), walker.get_transform().rotation, 0.1,  carla.Color(0,255,0,255), 0.10)
+            if distance >= nc_dist_min:
+                nc_reward = -2 * nc_reward
+            elif distance < nc_dist_min:
+                nc_reward = -4 * nc_reward
 
-        # print(collision, near_collision, walker, distance)
+            nc_reward = round(nc_reward, 4)
 
-        # if collision:
-        #     if ego_vehicle_speed > 0.0:
-        #         c_reward = -10
-        #         done = True
-        #     else:
-        #         done = True
-
-        # elif near_collision:
-        #     if distance < nc_dist_min:
-        #         nc_reward = -4*(ego_vehicle_speed/distance)
-        #     elif distance <= nc_dist_max:
-        #         nc_reward = ego_vehicle_speed/distance
-        #         nc_reward = -2*nc_reward
-            
-        #     nc_reward = -2
-            
+        elif collision:
+            if ego_vehicle_speed > 0.0:
+                c_reward = -10
+                done = True
+            else:
+                done = True
+           
 
         # check goal reached
         ego_vehicle_trans = self.get_ego_vehicle_transform()
         goal_trans = carla.Transform(carla.Location(x = self.config.goal_x, y = self.config.goal_y, z = ego_vehicle_trans.location.z))
         self.world.debug.draw_string(goal_trans.location, 'O', draw_shadow=False, color=carla.Color(r=255, g=0, b=0), life_time=10.0,persistent_lines=True)
         dist = compute_distance(location_1 = ego_vehicle_trans.location, location_2 = goal_trans.location)
-        # dist = euclidean_distance(source_transform = , destination_transform)
+
         if dist <= 10:
             done = True
-        # print('speed reward: ', d_reward)
-        # print('near collison reward: ', nc_reward)
-        # print('collision reward: ', c_reward)
+
         total_reward = d_reward + c_reward + nc_reward
         total_reward = round(total_reward, 4)
 
@@ -234,71 +231,142 @@ class UrbanEnv(CarlaSumoGym):
         return 1 if val > 0 else -1
 
 
+    def compute_bounding_box_distance(self, entity_one, entity_two):
+        dist = compute_distance(entity_one.get_location(), entity_two.get_location())
+        final_dist = dist - max(entity_one.bounding_box.extent.y, entity_one.bounding_box.extent.x) - max(entity_two.bounding_box.extent.y, entity_two.bounding_box.extent.x)
+        return final_dist
+
+
     def find_collision(self, walker_list, range):
         collision = near_collision = False
         walker = None
         distance = 100.0
 
-        ego_vehicle_trans = self.get_ego_vehicle_transform()
-        ego_vehicle_wp = self.map.get_waypoint(ego_vehicle_trans.location)
-        ego_vehicle_bb = self.get_ego_vehicle_bounding_box()
-        # ego_vehicle_bb.extent.x = 10.0
-        # ego_vehicle_bb.extent.y = 3.0
-        # # print(ego_vehicle_bb.extent)
-        # ego_vehicle_location = ego_vehicle_trans.location
-        # ego_vehicle_location.
+        ego_vehicle = self.get_ego_vehicle()
 
+        if DEBUG: self.world.debug.draw_box(carla.BoundingBox(ego_vehicle.get_transform().location, ego_vehicle.bounding_box.extent), ego_vehicle.get_transform().rotation, 0.1, carla.Color(255,255,0,0), 0.10) 
 
-        self.world.debug.draw_box(carla.BoundingBox(ego_vehicle_trans.location, ego_vehicle_bb.extent), ego_vehicle_trans.rotation, 0.1,  carla.Color(255,255,0,0), 0.10)
-        self.world.debug.draw_arrow(ego_vehicle_trans.location, ego_vehicle_trans.location + ego_vehicle_trans.get_forward_vector()*20,thickness=0.05, arrow_size=0.1, color=carla.Color(255,255,255,255), life_time=0.1)
+        walker_list = [w for w in walker_list if self.compute_bounding_box_distance(entity_one = w, entity_two = ego_vehicle) <= range]
 
-        #         debug.draw_box(carla.BoundingBox(actor_snapshot.get_transform().location,carla.Vector3D(0.5,0.5,2)),actor_snapshot.get_transform().rotation, 0.05, carla.Color(255,0,0,0),0)
- 
-        def dist(w): 
-            print(w.get_location().distance(ego_vehicle_trans.location))
-            return w.get_location().distance(ego_vehicle_trans.location)
-        walker_list = [w for w in walker_list if dist(w) <= config.nc_distance_threshold]      
-
+        # iterate over the list
         for target_walker in walker_list:
-            target_walker_trans = target_walker.get_transform()
-            target_wp = self.map.get_waypoint(target_walker_trans.location, project_to_road = True, lane_type = (carla.LaneType.Driving | carla.LaneType.Sidewalk))
-            self.world.debug.draw_arrow(target_walker_trans.location, target_walker_trans.location + target_walker_trans.get_forward_vector()*10,thickness=0.05, arrow_size=0.1, color=carla.Color(255,255,255,255), life_time=0.1)
+            if DEBUG: self.world.debug.draw_box(carla.BoundingBox(target_walker.get_transform().location, target_walker.bounding_box.extent), target_walker.get_transform().rotation, 0.1, carla.Color(0,0,0,255), 0.1)
 
-            #print(target_wp.lane_type)
-
+            # check if walker is on driving lane
+            target_wp = self.map.get_waypoint(target_walker.get_transform().location, project_to_road = True, lane_type = (carla.LaneType.Driving | carla.LaneType.Sidewalk))
             if target_wp.lane_type != carla.LaneType.Driving:
                 continue
 
-            #walker_dist = target_walker.get_location().distance(ego_vehicle_trans.location)
-            walker_dist = compute_distance(target_walker_trans.location, ego_vehicle_trans.location)
+            if DEBUG: self.world.debug.draw_box(carla.BoundingBox(target_walker.get_transform().location, target_walker.bounding_box.extent), target_walker.get_transform().rotation, 0.1, carla.Color(255,0,0,255), 0.1)
+    
+            walker_dist = self.compute_bounding_box_distance(entity_one = target_walker, entity_two = ego_vehicle)
+            walker_dist = round(walker_dist, 4)
 
             # check for collision
-            if (walker_dist - max(target_walker.bounding_box.extent.y, target_walker.bounding_box.extent.x) - max(ego_vehicle_bb.extent.y, ego_vehicle_bb.extent.x)) <= 0.1:
-                self.world.debug.draw_box(carla.BoundingBox(target_walker_trans.location, target_walker.bounding_box.extent), target_walker_trans.rotation, 0.1,  carla.Color(255,0,0,255), 0.10)
+            if walker_dist <= 0.1:
+                if DEBUG: self.world.debug.draw_box(carla.BoundingBox(target_walker.get_transform().location, target_walker.bounding_box.extent), target_walker.get_transform().rotation, 0.1, carla.Color(0,0,255,255), 0.1)
                 collision = True
-                distance = walker_dist
                 walker = target_walker
                 return (collision, near_collision, walker, distance)
 
+            # check for near collision
 
-            #     final_dist = distance - max(target_walker.bounding_box.extent.y, target_walker.bounding_box.extent.x) - max(ego_vehicle_bb.extent.y, ego_vehicle_bb.extent.x)
-            #     self.world.debug.draw_box(carla.BoundingBox(target_walker_trans.location, target_walker.bounding_box.extent), target_walker_trans.rotation, 0.1,  carla.Color(0,0,0,255), 0.10)
+            # same or next lane
+            target_walker_relative_position = compute_relative_position(source_transform = ego_vehicle.get_transform(), destination_transform = target_walker.get_transform())
+            if (target_walker_relative_position[1] >= -2.0 and target_walker_relative_position[1] <= 2.0):
+                if DEBUG: self.world.debug.draw_box(carla.BoundingBox(target_walker.get_transform().location, target_walker.bounding_box.extent), target_walker.get_transform().rotation, 0.1, carla.Color(0,255,0,255), 0.1)
+                if distance > walker_dist:
+                    near_collision = True
+                    distance = walker_dist
+                    walker = target_walker
 
-            target_walker_relative_position = compute_relative_position(source_transform = ego_vehicle_trans, destination_transform = target_walker_trans)
-            # #print(target_walker_relative_position)
+            elif (target_walker_relative_position[1] >= -8.0 and target_walker_relative_position[1] <= 2.0) and \
+                ray_intersection(p1 = target_walker.get_transform().location, p2 = ego_vehicle.get_transform().location, n1 = target_walker.get_transform().get_forward_vector(), n2 = ego_vehicle.get_transform().get_forward_vector()):
+                if DEBUG: self.world.debug.draw_box(carla.BoundingBox(target_walker.get_transform().location, target_walker.bounding_box.extent), target_walker.get_transform().rotation, 0.1, carla.Color(0,255,0,255), 0.1)
+                if distance > walker_dist:
+                    near_collision = True
+                    distance = walker_dist
+                    walker = target_walker
 
-            # check if within x,y range
-            # for same lane
-            if target_walker_relative_position[0] <= range and target_walker_relative_position[1] >= -3.0 and target_walker_relative_position[1] <= 3.0 or \
-               (target_walker_relative_position[0] <= config.nc_distance_threshold and target_walker_relative_position[1] >= -8.0 and target_walker_relative_position[1] <= 3.0 and \
-                ray_intersection(p1 = ego_vehicle_trans.location, p2 = target_walker_trans.location, n1 = ego_vehicle_trans.get_forward_vector(), n2 = target_walker_trans.get_forward_vector())):
-                    self.world.debug.draw_box(carla.BoundingBox(target_walker_trans.location, target_walker.bounding_box.extent), target_walker_trans.rotation, 0.1,  carla.Color(255,255,255,255), 0.10)
+                        # ego_veh_forward_vector = ego_vehicle_trans.get_forward_vector()
+            # walker_forward_vector = target_walker_trans.get_forward_vector()
+            # ego_veh_loc = ego_vehicle_trans.location
+            # p1_x = ego_veh_loc.x
+            # p1_y = ego_veh_loc.y
+            # p2_x = target_walker_loc.x
+            # p2_y = target_walker_loc.y
+            # n1_x = ego_veh_forward_vector.x
+            # n1_y = ego_veh_forward_vector.y
+            # n2_x = walker_forward_vector.x
+            # n2_y = walker_forward_vector.y
+            # u = (p1_y * n2_x + n2_y * p2_x - p2_y * n2_x - n2_y * p1_x) / (n1_x * n2_y - n1_y * n2_x)
+            # v = (p1_x + n1_x * u - p2_x) / n2_x
+            # #print(u, v)
+
+
+
+
+
+        # ego_vehicle_trans = self.get_ego_vehicle_transform()
+        # ego_vehicle_wp = self.map.get_waypoint(ego_vehicle_trans.location)
+        # ego_vehicle_bb = self.get_ego_vehicle_bounding_box()
+
+        # self.world.debug.draw_box(carla.BoundingBox(ego_vehicle_trans.location, ego_vehicle_bb.extent), ego_vehicle_trans.rotation, 0.1,  carla.Color(255,255,0,0), 0.10)
+        # self.world.debug.draw_arrow(ego_vehicle_trans.location, ego_vehicle_trans.location + ego_vehicle_trans.get_forward_vector()*20,thickness=0.05, arrow_size=0.1, color=carla.Color(255,255,255,255), life_time=0.1)
+
+
+        # def dist(w): 
+        #     #return w.get_location().distance(ego_vehicle_trans.location)
+        #     return compute_distance(w.get_location(), ego_vehicle_trans.location)
+        # walker_list = [w for w in walker_list if dist(w) <= 10.0] 
+        # print(len(walker_list))     
+
+        # for target_walker in walker_list:
+        #     target_walker_trans = target_walker.get_transform()
+        #     target_wp = self.map.get_waypoint(target_walker_trans.location, project_to_road = True, lane_type = (carla.LaneType.Driving | carla.LaneType.Sidewalk))
+        #     self.world.debug.draw_box(carla.BoundingBox(target_walker_trans.location, target_walker.bounding_box.extent), target_walker_trans.rotation, 0.1,  carla.Color(0,0,0,255), 0.1)
+        # #     self.world.debug.draw_arrow(target_walker_trans.location, target_walker_trans.location + target_walker_trans.get_forward_vector()*10,thickness=0.05, arrow_size=0.1, color=carla.Color(255,255,255,255), life_time=0.1)
+
+        # #     #print(target_wp.lane_type)
+
+        #     if target_wp.lane_type != carla.LaneType.Driving:
+        #         continue
+
+        #     self.world.debug.draw_box(carla.BoundingBox(target_walker_trans.location, target_walker.bounding_box.extent), target_walker_trans.rotation, 0.1,  carla.Color(255,0,0,255), 0.1)
+
+        #     #walker_dist = target_walker.get_location().distance(ego_vehicle_trans.location)
+        #     walker_dist = compute_distance(target_walker_trans.location, ego_vehicle_trans.location)
+
+        #     # check for collision
+        #     if (walker_dist - max(target_walker.bounding_box.extent.y, target_walker.bounding_box.extent.x) - max(ego_vehicle_bb.extent.y, ego_vehicle_bb.extent.x)) <= 0.1:
+        #         self.world.debug.draw_box(carla.BoundingBox(target_walker_trans.location, target_walker.bounding_box.extent), target_walker_trans.rotation, 0.1,  carla.Color(255,0,0,255), 0.10)
+        #         collision = True
+        #         distance = walker_dist
+        #         walker = target_walker
+        #         return (collision, near_collision, walker, distance)
+
+
+        #     #     final_dist = distance - max(target_walker.bounding_box.extent.y, target_walker.bounding_box.extent.x) - max(ego_vehicle_bb.extent.y, ego_vehicle_bb.extent.x)
+        #     #     self.world.debug.draw_box(carla.BoundingBox(target_walker_trans.location, target_walker.bounding_box.extent), target_walker_trans.rotation, 0.1,  carla.Color(0,0,0,255), 0.10)
+
+        #     target_walker_relative_position = compute_relative_position(source_transform = ego_vehicle_trans, destination_transform = target_walker_trans)
+        #     # #print(target_walker_relative_position)
+
+        #     # check if within x,y range
+        #     # for same lane
+        #     if target_walker_relative_position[0] <= range and target_walker_relative_position[1] >= -3.0 and target_walker_relative_position[1] <= 3.0 or \
+        #        (target_walker_relative_position[0] <= config.nc_distance_threshold and target_walker_relative_position[1] >= -8.0 and target_walker_relative_position[1] <= 3.0 and \
+        #         ray_intersection(p1 = ego_vehicle_trans.location, p2 = target_walker_trans.location, n1 = ego_vehicle_trans.get_forward_vector(), n2 = target_walker_trans.get_forward_vector())):
+        #             self.world.debug.draw_box(carla.BoundingBox(target_walker_trans.location, target_walker.bounding_box.extent), target_walker_trans.rotation, 0.1,  carla.Color(255,255,255,255), 0.10)
                 
-                    if walker_dist < distance:
+        #             if walker_dist < distance:
 
-                        near_collision = True
-                        distance = walker_dist
-                        walker = target_walker                
+        #                 near_collision = True
+        #                 distance = walker_dist
+        #                 walker = target_walker   
+
+        
+        if DEBUG and walker is not None: self.world.debug.draw_box(carla.BoundingBox(walker.get_transform().location, walker.bounding_box.extent), walker.get_transform().rotation, 0.1,  carla.Color(0,255,255,255), 0.1)    
         
         return (collision, near_collision, walker, distance)
 
