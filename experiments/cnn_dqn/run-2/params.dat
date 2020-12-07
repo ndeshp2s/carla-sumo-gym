@@ -7,7 +7,7 @@ agent = DQNAgent
 
 # Training related
 training_episodes = 1000
-training_steps_per_episode = 500
+training_steps_per_episode = 50
 
 # Testing related
 testing_episodes = 100

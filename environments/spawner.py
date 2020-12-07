@@ -40,6 +40,7 @@ class Spawner(object):
 
 
     def reset(self, config = None, spawn_points = None, ev_id = None):
+        self.connected_to_server = False
         self.create_client()
         self.config = config
         self.walker_spawn_points = spawn_points
@@ -64,27 +65,32 @@ class Spawner(object):
         except (RuntimeError):
             self.client = None
             self.world = None
+            pass
 
 
     def run_step(self, step = 0):
-
-        if not step%self.config.spawner_frequency == 0 and len(self.walker_list) >= self.config.number_of_walkers:
-            return
-
         if self.connected_to_server is False:
             return
 
-        if self.ego_vehicle_id is None or self.walker_spawn_points is None:
+        if not step%self.config.spawner_frequency == 0:
             return
 
-        # Get ego vehicle details
-        # actor_list = self.world.get_actors()
-        # actor = actor_list.find(self.ev_id)
-        # ev_trans = actor.get_transform()
+        #ev_trans = carla.Transform(carla.Location(0,0,0), carla.Rotation(0,0,0))
+
+        # if self.connected_to_server is False:
+        #     return
+
+        # if self.ego_vehicle_id is None or self.walker_spawn_points is None:
+        #     return
+
+        # # Get ego vehicle details
+        # # actor_list = self.world.get_actors()
+        # # actor = actor_list.find(self.ev_id)
+        # # ev_trans = actor.get_transform()
         ev_trans = self.world.get_actor(self.ego_vehicle_id).get_transform()
 
-        # delete farther pedestrians
-        self.delete_pedestrians(ev_trans)
+        # # delete farther pedestrians
+        # self.delete_pedestrians(ev_trans)
 
         # initialize controller of each pedestrian (spawned in previous step) and set target to walk to  
         self.spawn_controllers()
@@ -92,8 +98,11 @@ class Spawner(object):
         # spawn the pedestrians
         self.spawn_pedestrians(ev_trans)
 
+        self.delete_pedestrians(ev_trans)
+
 
     def spawn_pedestrians(self, ev_trans):
+        #print('spawn_pedestrians')
 
         if len(self.walker_list) >= self.config.number_of_walkers:
             return
@@ -130,6 +139,7 @@ class Spawner(object):
 
 
     def spawn_controllers(self):
+        #print('spawn_controllers')
         controller_bp = self.world.get_blueprint_library().find('controller.ai.walker')
 
         for w in self.walker_list:
@@ -148,6 +158,10 @@ class Spawner(object):
 
 
     def delete_pedestrians(self, ev_trans):
+        #print('delete_pedestrians')
+        if ev_trans is None:
+            return
+
         for w in self.walker_list:
             walker = self.world.get_actor(w['id'])
             if walker is None:
@@ -196,9 +210,43 @@ class Spawner(object):
             self.walker_list.remove(w)
 
 
+    def destroy_all(self):
+        print('destroy_all')
+
+        world = self.client.get_world()
+        if world is not None:
+            actor_list = world.get_actors()
+
+            for a in actor_list.filter("walker.pedestrian.*"):
+                a.destroy()
+
+    
+    def get_ev_trans(self):
+        #print('get_ev_trans')
+        ev = self.get_ev()
+
+        if ev is not None:
+            return ev.get_transform()
+
+        return None
+
+
+    def get_ev(self):
+        #print('get_ev')
+        print(self.world.get_actors())
+        #actors = self.world.get_actors().filter(carla_config.ev_bp)
+
+        # if actors is not None:
+        #     for a in actors:
+        #         if a.attributes.get('role_name') == carla_config.ev_name: 
+        #             return a
+        # else:
+        #     return None
+        return None
+
 
     def close(self):
-        self.destroy_walkers()
+        self.destroy_all()
         time.sleep(1.0)
 
 

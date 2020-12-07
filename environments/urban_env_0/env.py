@@ -97,9 +97,11 @@ class UrbanEnv(CarlaSumoGym):
 
 
     def get_observation(self):
+        print('get_observation')
         environment_state = np.zeros([self.config.grid_height, self.config.grid_width, self.config.features])
 
         # Get ego vehicle information
+        print('ego vehicle information')
         ego_vehicle_trans = self.get_ego_vehicle_transform()
         ego_vehicle_speed = self.get_ego_vehicle_speed(kmph = False)
         ego_vehicle_speed_norm = normalize_data(data = ego_vehicle_speed, min_val = 0, max_val = self.config.max_speed)
@@ -126,6 +128,7 @@ class UrbanEnv(CarlaSumoGym):
 
 
         # Fill walkers information
+        print('walkers information')
         walker_list = self.world.get_actors().filter('walker.pedestrian.*')
         for w in walker_list:
             w_trans = w.get_transform()
@@ -519,6 +522,7 @@ class UrbanEnv(CarlaSumoGym):
 
 
     def init_system(self):
+        print('init_system')
         for i in range(5):
             self.take_action(action = 3)
 
