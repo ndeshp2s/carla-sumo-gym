@@ -5,7 +5,7 @@ from torch.utils.tensorboard import SummaryWriter
 from utils.epsilon_decay import EpsilonDecay
 from utils.misc import create_directory
 
-DEBUG = 0
+DEBUG = 1
 class Trainer:
     def __init__(self, env, agent, spawner, params, exp_dir, retrain = False):
         self.env = env
@@ -34,7 +34,7 @@ class Trainer:
         for ep in range(pre_eps + 1, self.params.training_episodes):
     
             state = self.env.reset()
-            #self.spawner.reset(config = self.env.config, spawn_points = self.env.walker_spawn_points, ev_id = self.env.get_ego_vehicle_id())
+            self.spawner.reset(config = self.env.config, spawn_points = self.env.walker_spawn_points, ev_id = self.env.get_ego_vehicle_id())
 
             episode_reward = 0 
             episode_steps = 0           
@@ -49,7 +49,7 @@ class Trainer:
                     action = self.agent.pick_action(state, self.epsilon)
 
                 # Execute action for n times
-                #self.spawner.run_step(step) # running spawner step
+                self.spawner.run_step(step) # running spawner step
 
                 for i in range(0, self.params.action_repeat):
                     next_state, reward, done = self.env.step(action)
@@ -74,8 +74,8 @@ class Trainer:
                         self.agent.hard_update_target_network()
 
                 if done:
-                    #self.spawner.close()
-                    self.env.close()
+                    self.spawner.close()
+                    #self.env.close()
                     break
 
             # Print details of the episode
