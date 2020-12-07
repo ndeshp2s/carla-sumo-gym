@@ -21,7 +21,6 @@ def main(args):
     # Directory of current experiment
     base_dir = os.path.dirname(os.path.realpath(__file__))
     experiment_dir = os.path.join(base_dir, args.agent_type, args.dir)
-    print(base_dir, experiment_dir)
 
     # load traing/testing parameters
     params = load_parameters(file = os.path.join(experiment_dir, 'params.dat'))
