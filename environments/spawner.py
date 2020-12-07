@@ -68,7 +68,7 @@ class Spawner(object):
 
     def run_step(self, step = 0):
 
-        if not step%self.config.spawner_frequency == 0:
+        if not step%self.config.spawner_frequency == 0 and len(self.walker_list) >= self.config.number_of_walkers:
             return
 
         if self.connected_to_server is False:
@@ -104,7 +104,6 @@ class Spawner(object):
             if is_within_distance(tar_loc = sp.location, cur_loc = ev_trans.location, rot = ev_trans.rotation.yaw, max_dist = self.config.walker_spawn_distance_maximum, min_dist = self.config.walker_spawn_distance_minimum):
                 spawn_points.append(sp)
 
-        print(len(spawn_points))
         # Spawn the walkers
         for i in range(self.config.number_of_walkers):
             if len(spawn_points) == 0 or len(self.walker_list) >= self.config.number_of_walkers:
@@ -117,14 +116,17 @@ class Spawner(object):
             
             walker_sp = carla.Transform()
             walker_sp = random.choice(spawn_points)            
-            # walker_sp.location.x += random.uniform(-0.1, 0.1)
-            # walker_sp.location.y += random.uniform(-0.1, 0.1)
+            walker_sp.location.x += random.uniform(-0.1, 0.1)
+            walker_sp.location.y += random.uniform(-0.1, 0.1)
 
             walker = self.world.try_spawn_actor(walker_bp, walker_sp)
 
             if walker is not None:
                 self.walker_list.append({"id": walker.id, "controller": None, "start": walker_sp})
                 spawn_points.remove(walker_sp)
+
+            if len(self.walker_list) >= self.config.number_of_walkers:
+                break
 
 
     def spawn_controllers(self):
