@@ -174,8 +174,6 @@ def ray_intersection(p1, p2, n1, n2):
     u = (p1.x * n2.y + p2.y * n2.x - p2.x * n2.y - p1.y * n2.x) / (n1.y * n2.x - n1.x * n2.y)
     v = (p1.x + n1.x * u - p2.x) / n2.x
 
-    print(u, v)
-
     if u > 0 and v > 0:
         return True
 
