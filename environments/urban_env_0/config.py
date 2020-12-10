@@ -18,8 +18,8 @@ target_speed = 10 # in mps
 
 ### carla simulation related ### 
 
-display = True
-rendering = True
+display = False
+rendering = False
 synchronous = True
 town = 'Town11'
 fps = 10.0
@@ -27,7 +27,7 @@ rendering_screen_x = 720
 rendering_screen_y = 720
 
 # sensor related
-rgb_sensor = True
+rgb_sensor = False
 rgb_size_x = '1920'
 rgb_size_y = '1080'
 rgb_fov = '110'
