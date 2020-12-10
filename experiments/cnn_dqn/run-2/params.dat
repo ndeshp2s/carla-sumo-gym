@@ -7,7 +7,7 @@ agent = DQNAgent
 
 # Training related
 training_episodes = 1000
-training_steps_per_episode = 50
+training_steps_per_episode = 2000
 
 # Testing related
 testing_episodes = 100
@@ -23,4 +23,4 @@ learning_rate = 0.00025
 buffer_size = 100000
 batch_size = 32
 discount_rate = 0.95
-target_network_update_frequency = 1000
+target_network_update_frequency = 10000
