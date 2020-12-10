@@ -65,8 +65,7 @@ def main(args):
 
 
     if args.test:
-        tester = Tester(env = env, agent = None, spawner = spawner, params = params)
-      
+        tester = Tester(env = env, agent = agent, spawner = spawner, params = params, exp_dir = experiment_dir)     
 
         try:
             tester.test()
