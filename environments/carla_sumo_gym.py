@@ -58,7 +58,6 @@ class CarlaSumoGym(gym.Env):
         self.kill_carla_server()
 
         # open the server
-        print('opening the server')
         self.server = None
         cmd = [path.join(environ.get('CARLA_SERVER'), 'CarlaUE4.sh')]
 
@@ -90,7 +89,6 @@ class CarlaSumoGym(gym.Env):
                 time.sleep(1.0)
 
         # connect to client
-        print('connecting to client')
         carla_sim = CarlaSimulation('localhost', 2000, 0.1) # host, port, step_length
         self.client = carla_sim.client
         self.world = self.client.get_world()
@@ -116,13 +114,11 @@ class CarlaSumoGym(gym.Env):
         #         time.sleep(0.1)
 
         # apply settings
-        print('applying settings')
         delta_sec = 1.0 / fps
         settings = self.world.get_settings()
         self.world.apply_settings(carla.WorldSettings(no_rendering_mode = not rendering, synchronous_mode = synchronous, fixed_delta_seconds = delta_sec))
 
         # open sumo simulator
-        print('opening the sumo')
         current_map = self.world.get_map()
         basedir = os.path.dirname(os.path.realpath(__file__))
         net_file = os.path.join(basedir, 'sumo_config/net', current_map.name + '.net.xml')
@@ -130,7 +126,6 @@ class CarlaSumoGym(gym.Env):
 
         sumo_net =  sumolib.net.readNet(net_file)
         sumo_sim =  SumoSimulation(cfg_file=cfg_file, step_length=0.1, host=None, port=None, sumo_gui=sumo_gui, client_order=1)
-        print('calling synchronization')
         self.synchronization = SimulationSynchronization(sumo_sim, carla_sim, 'none', True, False)
 
         time.sleep(1.0)
@@ -176,7 +171,6 @@ class CarlaSumoGym(gym.Env):
 
 
     def spawn_ego_vehicle(self, position, type_id, max_speed = 5.0):
-        print('spawn_ego_vehicle')
         traci.vehicle.addFull(vehID = 'ev', routeID = 'routeEgo', depart=None, departPos=str(position), departSpeed='0', typeID=type_id)
         traci.vehicle.setSpeedMode(vehID = 'ev', sm = int('00000',0))
         traci.vehicle.setSpeed(vehID = 'ev', speed = 0.0)
