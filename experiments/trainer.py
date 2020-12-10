@@ -29,6 +29,8 @@ class Trainer:
 
     def train(self, pre_eps = -1, total_steps = 0):
 
+        self.fill_memory_buffer(size = int(self.params.hyperparameters['buffer_size']/2))
+
         self.agent.local_network.train()
         self.agent.target_network.train()
         
@@ -37,7 +39,7 @@ class Trainer:
         for ep in range(pre_eps + 1, self.params.training_episodes):
             
             state = self.env.reset()
-            self.spawner.reset(config = self.env.config, spawn_points = self.env.walker_spawn_points, ev_id = self.env.get_ego_vehicle_id())
+            #self.spawner.reset(config = self.env.config, spawn_points = self.env.walker_spawn_points, ev_id = self.env.get_ego_vehicle_id())
 
             episode_reward = 0 
             episode_steps = 0           
@@ -49,10 +51,10 @@ class Trainer:
                     action = input('Enter action: ')
                     action = int(action)
                 else:
-                    action = self.agent.pick_action(state, self.epsilon)
+                    action, action_values  = self.agent.pick_action(state, self.epsilon)
 
                 # Execute action for n times
-                self.spawner.run_step(step) # running spawner step
+                #self.spawner.run_step(step) # running spawner step
 
                 for i in range(0, self.params.action_repeat):
                     next_state, reward, done, info = self.env.step(action)
@@ -81,7 +83,7 @@ class Trainer:
                     #self.env.close()
                     break
 
-            self.spawner.close()
+            #self.spawner.close()
             self.env.close()
 
             # Print details of the episode
@@ -127,5 +129,39 @@ class Trainer:
         if self.env.server:
             self.spawner.close()
             self.env.close()
+
+
+    def fill_memory_buffer(self, size = 0):
+        while True:
+            
+            state = self.env.reset()
+            #self.spawner.reset(config = self.env.config, spawn_points = self.env.walker_spawn_points, ev_id = self.env.get_ego_vehicle_id())         
+
+            for step in range(self.params.training_steps_per_episode):
+
+                # Select action
+                action, action_values  = self.agent.pick_action(state, self.epsilon)
+
+                # Execute action for n times
+                #self.spawner.run_step(step) # running spawner step
+
+                for i in range(0, self.params.action_repeat):
+                    next_state, reward, done, info = self.env.step(action)
+
+                # Add experience to memory of local network
+                self.agent.add(state = state, action = action, reward = reward, next_state = next_state, done = done)
+
+                if done:
+                    break
+
+            #self.spawner.close()
+            self.env.close()
+
+            if self.agent.memory.__len__() >= size:
+                print('------------------------------------------------------------------------------')
+                print('BUFFER MEMORY FILLED. Now learning will start')
+                print('------------------------------------------------------------------------------')
+                break
+
 
 
