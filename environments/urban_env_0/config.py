@@ -4,7 +4,7 @@ sumo_gui = False
 
 # ego vehicle related
 #  start positon (in sumo)
-start_position = 60.0
+start_position = 70.0
 goal_position = 90.0
 ev_type = 'vehicle.audi.etron'
 # goal position (in carla)
@@ -18,8 +18,8 @@ target_speed = 10 # in mps
 
 ### carla simulation related ### 
 
-display = False
-rendering = False
+display = True
+rendering = True
 synchronous = True
 town = 'Town11'
 fps = 10.0
@@ -27,7 +27,7 @@ rendering_screen_x = 720
 rendering_screen_y = 720
 
 # sensor related
-rgb_sensor = False
+rgb_sensor = True
 rgb_size_x = '1920'
 rgb_size_y = '1080'
 rgb_fov = '110'
@@ -52,13 +52,13 @@ N_DISCRETE_ACTIONS = 4
 
 ### spawner related ###
 spawner_frequency = 1
-number_of_walkers = 12
-walker_spawn_distance_maximum = 35.0
-walker_spawn_distance_minimum = 10.0
-walker_allowed_distance_maximum = 40.0
+number_of_walkers = 2
+walker_spawn_distance_maximum = 25.0
+walker_spawn_distance_minimum = 1.0
+walker_allowed_distance_maximum = 30.0
 walker_allowed_distance_minimum = 0.0
-walker_pedestrians_crossing = 0.7
-walker_pedestrians_crossing_illegal = 0.2
+walker_pedestrians_crossing = 0.0
+walker_pedestrians_crossing_illegal = 0.0
 
 maximum_distance_pedestrian = 40.0
 minimum_distance_pedestrian = 0.0
