@@ -5,6 +5,7 @@ import glob
 import numpy as np
 import gym
 from gym import spaces
+from random import randrange
 
 # carla library
 try:
@@ -49,9 +50,9 @@ class UrbanEnv(CarlaSumoGym):
         self.action_space = spaces.Discrete(config.N_DISCRETE_ACTIONS)
 
 
-    def step(self, action = None):
+    def step(self, action = None, action_values = None):
 
-        q_values = self.compute_q_values(action = action)
+        q_values = action_values#self.compute_q_values(action = action)
 
         # select action to be taken
         self.take_action(max_speed = self.config.max_speed, action = action)
@@ -61,12 +62,12 @@ class UrbanEnv(CarlaSumoGym):
 
         # get next state and reward
         state = None
-        reward = None
-        done = None
+        reward = 0
+        done = 0
         state = self.get_observation()
         reward, done, info = self.get_reward()
 
-        self.render(model_output = q_values, speed = self.get_ego_vehicle_speed(kmph = True), grid = state[:,:,3])
+        self.render(model_output = q_values, speed = self.get_ego_vehicle_speed(kmph = False), grid = state[:,:,3])
 
         return state, reward, done, info
 
@@ -77,6 +78,7 @@ class UrbanEnv(CarlaSumoGym):
 
         self.connect_server_client(display = config.display, rendering = config.rendering, town = config.town, fps = config.fps, sumo_gui = config.sumo_gui)
         
+        start_pos = config.start_position + randrange(0, 15)
         self.spawn_ego_vehicle(position = config.start_position, type_id = config.ev_type)
 
         self.add_sensors()
@@ -97,11 +99,9 @@ class UrbanEnv(CarlaSumoGym):
 
 
     def get_observation(self):
-        print('get_observation')
         environment_state = np.zeros([self.config.grid_height, self.config.grid_width, self.config.features])
 
         # Get ego vehicle information
-        print('ego vehicle information')
         ego_vehicle_trans = self.get_ego_vehicle_transform()
         ego_vehicle_speed = self.get_ego_vehicle_speed(kmph = False)
         ego_vehicle_speed_norm = normalize_data(data = ego_vehicle_speed, min_val = 0, max_val = self.config.max_speed)
@@ -128,7 +128,6 @@ class UrbanEnv(CarlaSumoGym):
 
 
         # Fill walkers information
-        print('walkers information')
         walker_list = self.world.get_actors().filter('walker.pedestrian.*')
         for w in walker_list:
             w_trans = w.get_transform()
@@ -163,8 +162,11 @@ class UrbanEnv(CarlaSumoGym):
 
                 # data normalization
                 w_relative_heading_norm = normalize_data(data = w_relative_heading, min_val = 0, max_val = 360.0)
+                w_relative_heading_norm = round(w_relative_heading_norm, 2)
                 w_speed_norm = normalize_data(data = w_speed, min_val = 0, max_val = self.config.max_speed)
+                w_speed_norm = round(w_speed_norm, 2)
                 w_lane_norm = normalize_data(data = w_lane, min_val = 0, max_val = 3)
+                w_lane_norm = round(w_lane_norm, 2)
                 w_lane_norm = round(w_lane_norm, 2)
 
                 # state update for walker w-> occupancy, heading, speed
@@ -175,7 +177,7 @@ class UrbanEnv(CarlaSumoGym):
 
 
     def get_reward(self):
-        done = False
+        done = 0
         info = 'None'
         total_reward = d_reward = nc_reward = c_reward = 0.0
 
@@ -209,10 +211,10 @@ class UrbanEnv(CarlaSumoGym):
         elif collision:
             if ego_vehicle_speed > 0.0:
                 c_reward = -10
-                done = True
+                done = 1
                 info = 'Normal Collision'
             else:
-                done = True
+                done = 1
                 info = 'Pedestrian Collision'
            
 
@@ -223,11 +225,21 @@ class UrbanEnv(CarlaSumoGym):
         dist = compute_distance(location_1 = ego_vehicle_trans.location, location_2 = goal_trans.location)
 
         if dist <= 10:
-            done = True
+            done = 1
             info = 'Goal Reached'
 
-        total_reward = d_reward + c_reward + nc_reward
+        # total_reward = d_reward + c_reward + nc_reward
+        # total_reward = round(total_reward, 4)
+
+        if collision:
+            total_reward = c_reward
+        elif near_collision:
+            total_reward = nc_reward
+        else:
+            total_reward = d_reward
+
         total_reward = round(total_reward, 4)
+
 
         return total_reward, done, info
 
@@ -492,7 +504,7 @@ class UrbanEnv(CarlaSumoGym):
     def render(self, model_output = None, speed = 0, grid = None):
         if self.renderer is not None and self.rgb_image is not None: 
             #self.renderer.render_image(image = self.rgb_image, image_frame = self.rgb_image_frame, model_output = model_output, speed = speed, grid = grid)
-            self.renderer.render(image = self.rgb_image, q_values = model_output, grid = grid)
+            self.renderer.render(image = self.rgb_image, q_values = model_output, grid = grid, speed = speed)
 
 
     def close(self):
@@ -522,7 +534,6 @@ class UrbanEnv(CarlaSumoGym):
 
 
     def init_system(self):
-        print('init_system')
         for i in range(5):
             self.take_action(action = 3)
 

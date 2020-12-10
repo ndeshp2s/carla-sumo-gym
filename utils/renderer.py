@@ -65,7 +65,7 @@ class Renderer(object):
         self.is_open = True
 
 
-    def render(self, image, q_values = None, grid = None):
+    def render(self, image, q_values = None, grid = None, speed = 0):
         """
         Render the given image to the pygame window
         :param image: a grayscale or color image in an arbitrary size. assumes that the channels are the last axis
@@ -77,7 +77,7 @@ class Renderer(object):
             if self.render_image:
                 self.render_image(image = image)
             if self.render_q_values:
-                self.render_q_values(q_values = q_values)
+                self.render_q_values(q_values = q_values, speed = speed)
             if self.rend_grid:
                 self.render_grid(grid = grid)
 
@@ -129,7 +129,7 @@ class Renderer(object):
                 self.close()
 
 
-    def render_q_values(self, q_values):
+    def render_q_values(self, q_values, speed = 0):
 
         base_dir = os.path.dirname(os.path.realpath(__file__))
         font_file = os.path.join(base_dir, 'Roboto-Light.ttf')
@@ -140,29 +140,42 @@ class Renderer(object):
         surface.fill(self.OFF_WHITE)
         surface.set_alpha(150)
 
+        # print(q_values)
+        # print(normalized_q_values)
+
         # 0th action
-        pygame.draw.rect(surface, self.GREEN, (0, 100, 180, -100))
+        pygame.draw.rect(surface, self.GREEN, (0, 100, 180, -normalized_q_values[0]))
         text = font.render("Accelerate", True, (0, 0, 0))
         surface.blit(text, (1, self.q_values_win_size[1]))
 
         # 1th action
-        pygame.draw.rect(surface, self.ORANGE, (180, 100, 180, -100))
+        pygame.draw.rect(surface, self.ORANGE, (180, 100, 180, -normalized_q_values[1]))
         text = font.render("Decelerate", True, (0, 0, 0))
         surface.blit(text, (181, self.q_values_win_size[1]))
 
         # 2th action
-        pygame.draw.rect(surface, self.YELLOW, (360, 100, 180, -100))
+        pygame.draw.rect(surface, self.YELLOW, (360, 100, 180, -normalized_q_values[2]))
         text = font.render("Steer", True, (0, 0, 0))
         surface.blit(text, (361, self.q_values_win_size[1]))
 
         # 3th action
-        pygame.draw.rect(surface, self.RED, (540, 100, 180, -100))
+        pygame.draw.rect(surface, self.RED, (540, 100, 180, -normalized_q_values[3]))
         text = font.render("Brake", True, (0, 0, 0))
         surface.blit(text, (541, self.q_values_win_size[1]))
 
         pygame.draw.rect(surface, self.BLACK, pygame.Rect(0, 0, self.q_values_win_size[0], self.q_values_win_size[1] + 20), 1)
 
         self.screen.blit(surface, (self.border_margin, (self.size[1] - self.img_win_size[1] - 2*self.border_margin - self.q_values_win_size[1] - self.border_margin)))
+
+
+        # Speed
+        font_file = os.path.join(base_dir, 'Roboto-LightItalic.ttf')
+        font_unit = pygame.font.Font(font_file, 20)
+        unit = font_unit.render("km/hr", 1, (0, 0, 0))
+        speed_string = font.render(str(speed), 1, (0, 0, 0))
+
+        self.screen.blit(speed_string, (580, 50))
+        self.screen.blit(unit, (630, 50))
 
 
     def show(self, q, speed = 0):
