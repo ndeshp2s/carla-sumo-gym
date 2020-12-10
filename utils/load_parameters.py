@@ -19,6 +19,7 @@ def load_parameters(file):
     params.training_episodes = int(params_dict['training_episodes'])
     params.training_steps_per_episode = int(params_dict['training_steps_per_episode'])
     params.testing_episodes = int(params_dict['testing_episodes'])
+    params.testing_steps_per_episode = int(params_dict['testing_steps_per_episode'])
 
     params.hyperparameters['epsilon_start'] = float(params_dict['epsilon_start'])
     params.hyperparameters['epsilon_end'] = float(params_dict['epsilon_end'])
