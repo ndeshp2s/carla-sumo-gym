@@ -1,7 +1,7 @@
 import numpy as np
 import torch
 import torch.optim as optim
-from neural_networks.cnn import NeuralNetwork
+from neural_networks.cnn_2 import NeuralNetwork
 from rl_agents.replay_buffer import ReplayBuffer
 
 class DQNAgent:
@@ -38,7 +38,7 @@ class DQNAgent:
         actions = torch.from_numpy(np.vstack([e.action for e in experiences if e is not None])).long().to(self.device)
         rewards = torch.from_numpy(np.vstack([e.reward for e in experiences if e is not None])).float().to(self.device)
         next_states = torch.from_numpy(np.vstack([e.next_state for e in experiences if e is not None])).float().to(self.device)
-        dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None]).astype(np.uint8)).float().to(self.device)
+        dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None])).float().to(self.device)
 
         ## COMPUTE THE LOSS
         q_predicted = self.compute_predicted_q(states = states, actions = actions)
@@ -96,7 +96,9 @@ class DQNAgent:
             action = action_values.max(1)[1].item()
 
         else:
-            action = np.random.randint(0, action_values.shape[1])
+            action = np.random.choice(np.arange(0, 4), p = [0.25, 0.25, 0.25, 0.25]) #np.random.randint(0, action_values.shape[1])
 
-        return action
+        print(action_values[0].squeeze(0))
+
+        return action, action_values[0].squeeze(0)
 
