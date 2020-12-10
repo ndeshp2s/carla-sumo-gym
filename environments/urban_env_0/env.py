@@ -67,7 +67,8 @@ class UrbanEnv(CarlaSumoGym):
         state = self.get_observation()
         reward, done, info = self.get_reward()
 
-        self.render(model_output = q_values, speed = self.get_ego_vehicle_speed(kmph = False), grid = state[:,:,3])
+        environment_state = state[1]
+        self.render(model_output = q_values, speed = self.get_ego_vehicle_speed(kmph = False), grid = environment_state[:,:,3])
 
         return state, reward, done, info
 
@@ -100,31 +101,33 @@ class UrbanEnv(CarlaSumoGym):
 
     def get_observation(self):
         environment_state = np.zeros([self.config.grid_height, self.config.grid_width, self.config.features])
+        ego_vehicle_state = np.zeros([1])
 
         # Get ego vehicle information
         ego_vehicle_trans = self.get_ego_vehicle_transform()
         ego_vehicle_speed = self.get_ego_vehicle_speed(kmph = False)
         ego_vehicle_speed_norm = normalize_data(data = ego_vehicle_speed, min_val = 0, max_val = self.config.max_speed)
         ego_vehicle_speed_norm = round(ego_vehicle_speed_norm, 2)
+        ego_vehicle_state[0] = ego_vehicle_speed_norm
 
 
-        # Fill grid with ego vehicle position
-        for i in range(0, 1):
-            for j in range(0, 1):
-                x_discrete, status = get_index(val = i, start = self.config.grid_height_min, stop = self.config.grid_height_max, num = self.config.grid_height)
-                y_discrete, status = get_index(val = j, start = self.config.grid_width_min, stop = self.config.grid_width_max, num = self.config.grid_width)
+        # # Fill grid with ego vehicle position
+        # for i in range(0, 1):
+        #     for j in range(0, 1):
+        #         x_discrete, status = get_index(val = i, start = self.config.grid_height_min, stop = self.config.grid_height_max, num = self.config.grid_height)
+        #         y_discrete, status = get_index(val = j, start = self.config.grid_width_min, stop = self.config.grid_width_max, num = self.config.grid_width)
 
-                x_discrete = np.argmax(x_discrete)
-                y_discrete = np.argmax(y_discrete)
+        #         x_discrete = np.argmax(x_discrete)
+        #         y_discrete = np.argmax(y_discrete)
 
-                # lane type
-                waypoint = self.map.get_waypoint(ego_vehicle_trans.location, project_to_road=True, lane_type=(carla.LaneType.Driving))
-                ev_lane = self.find_lane_type(wp = waypoint, trans = ego_vehicle_trans)
-                ev_lane_norm = normalize_data(data = ev_lane, min_val = 0, max_val = 3)
-                ev_lane_norm = round(ev_lane_norm, 2)
+        #         # lane type
+        #         waypoint = self.map.get_waypoint(ego_vehicle_trans.location, project_to_road=True, lane_type=(carla.LaneType.Driving))
+        #         ev_lane = self.find_lane_type(wp = waypoint, trans = ego_vehicle_trans)
+        #         ev_lane_norm = normalize_data(data = ev_lane, min_val = 0, max_val = 3)
+        #         ev_lane_norm = round(ev_lane_norm, 2)
                 
-                # state update for ego vehicle -> occupancy, heading, speed, lane type
-                environment_state[x_discrete, y_discrete, :] = [0.5, 0.0, ego_vehicle_speed_norm, ev_lane_norm]
+        #         # state update for ego vehicle -> occupancy, heading, speed, lane type
+        #         environment_state[x_discrete, y_discrete, :] = [0.5, 0.0, ego_vehicle_speed_norm, ev_lane_norm]
 
 
         # Fill walkers information
@@ -173,7 +176,10 @@ class UrbanEnv(CarlaSumoGym):
                 environment_state[x_discrete, y_discrete,:] = [1.0, w_relative_heading_norm, w_speed_norm, w_lane_norm] 
 
 
-        return environment_state
+        state_tensor = []
+        state_tensor.append(ego_vehicle_state)
+        state_tensor.append(environment_state)
+        return state_tensor
 
 
     def get_reward(self):
