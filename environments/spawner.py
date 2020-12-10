@@ -151,7 +151,7 @@ class Spawner(object):
 
                 controller.start()
                 controller.go_to_location(goal.location)
-                controller.set_max_speed(1 + random.random())
+                controller.set_max_speed(0.5 + random.random())
 
                 i = self.walker_list.index(w)
                 self.walker_list[i]["controller"] = controller.id
@@ -211,7 +211,6 @@ class Spawner(object):
 
 
     def destroy_all(self):
-        print('destroy_all')
 
         world = self.client.get_world()
         if world is not None:
