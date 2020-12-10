@@ -28,21 +28,21 @@ class Trainer:
 
 
     def train(self, pre_eps = -1, total_steps = 0):
+
+        self.agent.local_network.train()
+        self.agent.target_network.train()
         
         total_steps = total_steps
 
         for ep in range(pre_eps + 1, self.params.training_episodes):
             
-            print('resetting env')
             state = self.env.reset()
-            print('resetting spawner')
             self.spawner.reset(config = self.env.config, spawn_points = self.env.walker_spawn_points, ev_id = self.env.get_ego_vehicle_id())
 
             episode_reward = 0 
             episode_steps = 0           
 
             for step in range(self.params.training_steps_per_episode):
-                print('step: ', step)                
 
                 # Select action
                 if DEBUG:
