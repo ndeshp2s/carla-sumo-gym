@@ -1,0 +1,26 @@
+# Environment related
+env = Urban-v0 
+action_repeat = 1
+
+# Agent related
+agent = DQNAgent
+
+# Training related
+training_episodes = 1000
+training_steps_per_episode = 2000
+
+# Testing related
+testing_episodes = 100
+testing_steps_per_episode = 1000
+
+# Hyper-parameters
+epsilon_start = 1.0
+epsilon_end = 0.1
+epsilon_decay = 5e-5
+epsilon_steps = 1000
+use_cuda = True
+learning_rate = 0.00025
+buffer_size = 10000
+batch_size = 32
+discount_rate = 0.95
+target_network_update_frequency = 1000
