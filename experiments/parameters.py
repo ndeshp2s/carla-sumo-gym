@@ -19,3 +19,4 @@ class Parameters:
     hyperparameters['batch_size'] = 0
     hyperparameters['discount_rate'] = 0.0
     hyperparameters['target_network_update_frequency'] = 0
+    hyperparameters['update_buffer_memory_frequency'] = 0
