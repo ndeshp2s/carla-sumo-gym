@@ -192,10 +192,12 @@ class UrbanEnv(CarlaSumoGym):
         ego_vehicle_speed = round(ego_vehicle_speed, 2)
 
         target_speed = self.config.target_speed
-        if ego_vehicle_speed > 0.0:
+        if ego_vehicle_speed > 0.0 and ego_vehicle_speed <= target_speed:
             d_reward = (target_speed - abs(target_speed - ego_vehicle_speed))/target_speed
         elif ego_vehicle_speed <= 0.0:
-            d_reward = -0.1
+            d_reward = -1.0
+        elif ego_vehicle_speed > target_speed:
+            d_reward = -1.0
 
         # reward for collision
         walker_list = self.world.get_actors().filter('walker.pedestrian.*')
