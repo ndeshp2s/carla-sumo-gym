@@ -2,14 +2,14 @@ import random
 import numpy as np
 import torch
 from collections import deque, namedtuple
-
+import pickle
 
 class ReplayBuffer():
     def __init__(self, buffer_size, batch_size):
 
         self.memory = deque(maxlen = buffer_size)
         self.batch_size = batch_size
-        self.experience = namedtuple("Experience", field_names = ["state", "action", "reward", "next_state", "done"])
+        self.experience = namedtuple("experience", field_names = ["state", "action", "reward", "next_state", "done"])
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     def add_experience(self, state, action, reward, next_state, done):
@@ -40,3 +40,16 @@ class ReplayBuffer():
 
     def __len__(self):
         return len(self.memory)
+
+    def save_buffer(self, file):
+        # data = []
+        # for e in self.agent.buffer.memory:
+        #     print(e)
+        #     data.append(e)
+        # print(len(data))
+
+        # file = self.buffer_dir + '/replay_memory_buffer.txt'
+        
+        self.experience = namedtuple("Experience", field_names = ["state", "action", "reward", "next_state", "done"])
+        with open(file, 'wb') as fp:
+            pickle.dump(self.memory, fp)

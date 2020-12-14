@@ -9,10 +9,13 @@ class DDQNAgent(DQNAgent):
         self.hard_update_target_network()
 
     def compute_predicted_q_next(self, ego_vehicle_next_states, environment_next_states):
+        # Find q value for next state
+        q_next_predicted_for_all_actions = self.target_network(x1 = ego_vehicle_next_states, x2 = environment_next_states)
         # Find the index of action (from local network) with maximum q value 
-        max_action_index = self.local_network(x1 = ego_vehicle_next_states, x2 = environment_next_states).detach().argmax(1)
+        max_action_index = q_next_predicted_for_all_actions.max(1)[1].unsqueeze(1)
         # Get the q value (from local network) corrsponding to best action in next state
-        q_next_predicted = self.target_network(x1 = ego_vehicle_next_states, x2 = environment_next_states).gather(1, max_action_index.unsqueeze(1)) 
+        q_next_predicted = q_next_predicted_for_all_actions.gather(1, max_action_index).squeeze(1)  
+        
         return q_next_predicted
 
     def hard_update_target_network(self):
