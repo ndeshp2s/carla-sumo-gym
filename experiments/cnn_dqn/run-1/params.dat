@@ -7,7 +7,7 @@ agent = DQNAgent
 
 # Training related
 training_episodes = 1000
-training_steps_per_episode = 500
+training_steps_per_episode = 1000
 
 # Testing related
 testing_episodes = 100
@@ -19,8 +19,9 @@ epsilon_end = 0.1
 epsilon_decay = 5e-5
 epsilon_steps = 1000
 use_cuda = True
-learning_rate = 0.00025
-buffer_size = 100000
-batch_size = 32
-discount_rate = 0.95
-target_network_update_frequency = 1000
+learning_rate = 0.001
+buffer_size = 10000
+batch_size = 128
+discount_rate = 0.99
+target_network_update_frequency = 10000
+update_buffer_memory_frequency = 10
