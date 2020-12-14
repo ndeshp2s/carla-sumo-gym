@@ -31,6 +31,7 @@ def load_parameters(file):
     params.hyperparameters['batch_size'] = int(params_dict['batch_size'])
     params.hyperparameters['discount_rate'] = float(params_dict['discount_rate'])
     params.hyperparameters['target_network_update_frequency'] = int(params_dict['target_network_update_frequency'])
+    params.hyperparameters['update_buffer_memory_frequency'] = int(params_dict['update_buffer_memory_frequency'])
 
     return params
 
