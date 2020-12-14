@@ -20,6 +20,7 @@ target_speed = 10 # in mps
 
 display = False
 rendering = False
+
 synchronous = True
 town = 'Town11'
 fps = 10.0
