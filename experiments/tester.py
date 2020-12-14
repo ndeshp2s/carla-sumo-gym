@@ -20,7 +20,7 @@ class Tester:
 
         for ep in range(self.params.testing_episodes):
             state = self.env.reset()
-            self.spawner.reset(config = self.env.config, spawn_points = self.env.walker_spawn_points, ev_id = self.env.get_ego_vehicle_id())
+            #self.spawner.reset(config = self.env.config, spawn_points = self.env.walker_spawn_points, ev_id = self.env.get_ego_vehicle_id())
 
             for step in range(self.params.testing_steps_per_episode): 
                 # Select action
@@ -30,18 +30,19 @@ class Tester:
                 else:
                     input('Enter: ')
                     action, action_values = self.agent.pick_action(state, 0)
-                    #print(action_values)
+                    print(action_values)
 
                 # Execute action for n times
-                self.spawner.run_step(step) # running spawner step
+                #self.spawner.run_step(step) # running spawner step
 
                 for i in range(0, self.params.action_repeat):
                     next_state, reward, done, info = self.env.step(action = action, action_values = action_values)
+                    print('reward: ', reward)
 
                 if done:
                     break
 
-            self.spawner.close()
+            #self.spawner.close()
             self.env.close()
 
 
