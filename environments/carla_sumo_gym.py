@@ -51,7 +51,7 @@ class CarlaSumoGym(gym.Env):
         self.synchronization = None
         self.max_speed = 3.0
         self.walker_spawn_points = None
-
+        
 
     def connect_server_client(self, display = True, rendering = True, synchronous = True, town = 'Town11', fps = 10.0, sumo_gui = False):
 
@@ -136,8 +136,8 @@ class CarlaSumoGym(gym.Env):
         if desired_speed < 0.00:
             desired_speed = 0.0
 
-        if desired_speed > 15:
-            desired_speed = 15
+        if desired_speed > max_speed:
+            desired_speed = max_speed
 
         traci.vehicle.setSpeed(vehID = 'ev', speed = desired_speed)
 
@@ -241,6 +241,16 @@ class CarlaSumoGym(gym.Env):
         self.kill_carla_server()
 
         self.clear_all()
+
+
+    def sumo_restart(self):
+        self.synchronization.close_sumo()
+        # rgb_sensor = self.world.get_actors()
+        # #rgb_sensor.destroy()
+        # # ev = self.world.get_actor('vehicle.audi.etron')
+        # # ev.destroy()
+        time.sleep(1)
+        self.synchronization.start_sumo()
 
 
     def clear_all(self):
