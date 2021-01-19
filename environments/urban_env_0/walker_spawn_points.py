@@ -11,7 +11,7 @@ except IndexError:
 import carla
 
 
-point_spacing = 10
+point_spacing = 7
 
 walker_spawn_points = []
 walker_goal_points = []
