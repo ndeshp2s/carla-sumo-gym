@@ -8,7 +8,7 @@ from experiments.trainer import Trainer
 from experiments.tester import Tester
 from utils.load_parameters import load_parameters
 from experiments.parameters import Parameters
-from rl_agents.q_learning.ddqn import DDQNAgent
+from rl_agents.q_learning.ddqn_fixed_target import DDQNFixedTargetAgent
 
 import environments
 from environments.spawner import Spawner
@@ -29,9 +29,10 @@ def main(args):
     env = gym.make(params.environment)
     state_size = env.observation_space.shape
     action_size = env.action_space.n
+    env.reset()
 
     # Initialize the agent
-    agent = DDQNAgent(state_size = state_size, action_size = action_size, hyperparameters = params.hyperparameters)
+    agent = DDQNFixedTargetAgent(state_size = state_size, action_size = action_size, hyperparameters = params.hyperparameters)
 
     # Initialize spawner
     spawner = Spawner()

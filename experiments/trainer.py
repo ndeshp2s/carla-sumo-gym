@@ -1,4 +1,5 @@
 import os
+import time
 import pickle
 import cloudpickle
 import torch
@@ -8,6 +9,9 @@ from utils.epsilon_decay import EpsilonDecay
 from utils.misc import create_directory
 
 import json
+import bz2
+from collections import deque
+from itertools import islice
 
 DEBUG = 0
 class Trainer:
@@ -33,9 +37,10 @@ class Trainer:
 
         # Buffer memory directory
         self.buffer_dir = os.path.join(exp_dir, 'buffer_memory')
+        if not self.retrain_flag: create_directory(dir = self.buffer_dir)
 
 
-    def train(self, pre_eps = -1, total_steps = 0):
+    def train(self, pre_eps = -1, pre_steps = 0):
 
         self.fill_memory_buffer()
         print('------------------------------------------------------------------------------')
@@ -45,11 +50,13 @@ class Trainer:
         self.agent.local_network.train()
         self.agent.target_network.train()
         
-        total_steps = total_steps
+        total_steps = pre_steps
+        ep = pre_eps
 
-        for ep in range(pre_eps + 1, self.params.training_episodes):
+        #for ep in range(pre_eps + 1, self.params.training_episodes):
+        while total_steps < self.params.training_total_steps:
             
-            state = self.env.reset()
+            state = self.env.reset(type = 'soft')
             #self.spawner.reset(config = self.env.config, spawn_points = self.env.walker_spawn_points, ev_id = self.env.get_ego_vehicle_id())
 
             episode_reward = 0 
@@ -82,28 +89,30 @@ class Trainer:
                 # compute the loss
                 loss = 0
                 if self.agent.buffer.__len__() > self.params.hyperparameters['batch_size']:
-                    loss = self.agent.learn(batch_size = self.params.hyperparameters['batch_size'])
+                    #loss = self.agent.learn(batch_size = self.params.hyperparameters['batch_size'])
                     # save the loss
                     self.writer.add_scalar('Loss per step', loss, total_steps)
 
                     if total_steps % self.params.hyperparameters['target_network_update_frequency'] == 0:
                         self.agent.hard_update_target_network()
 
+                # epsilon update
+                self.epsilon = self.epsilon_decay.update_linear(current_eps = self.epsilon)
+                self.writer.add_scalar('Epsilon decay', self.epsilon, ep)
+
                 if done:
                     #self.spawner.close()
                     #self.env.close()
                     break
-
+            ep += 1
             #self.spawner.close()
             #self.env.close()
 
-            # epsilon update
-            self.epsilon = self.epsilon_decay.update_linear(current_eps = self.epsilon)
-            self.writer.add_scalar('Epsilon decay', self.epsilon, ep)
+
 
             # Print details of the episode
             print("-----------------------------------------------------------------------------------")
-            print("Episode: %d, Reward: %5f, Loss: %4f, Epsilon: %4f, Steps: %d, Info: %s" % (ep, episode_reward, loss, self.epsilon, episode_steps, info))
+            print("Episode: %d, Reward: %5f, Loss: %4f, Epsilon: %4f, Episode_Steps: %d, Total_Steps: %d, Info: %s" % (ep, episode_reward, loss, self.epsilon, episode_steps, total_steps, info))
             print("-----------------------------------------------------------------------------------")
 
 
@@ -120,6 +129,7 @@ class Trainer:
                             'optimizer': self.agent.optimizer.state_dict(),
                             'episode': ep,
                             'epsilon': self.epsilon,
+                            'total_episodes': ep,
                             'total_steps': total_steps}
             torch.save(checkpoint, self.checkpoint_dir + '/model_and_parameters.pth')
 
@@ -130,14 +140,18 @@ class Trainer:
         self.agent.local_network.load_state_dict(checkpoint['state_dict'])
         self.agent.target_network.load_state_dict(checkpoint['state_dict'])
         self.agent.optimizer.load_state_dict(checkpoint['optimizer'])
+
         previous_episode = checkpoint['episode']
+        total_episodes = checkpoint['total_episodes']
         total_steps = checkpoint['total_steps']
+
         self.epsilon = checkpoint['epsilon']
 
         self.agent.local_network.train()
         self.agent.target_network.train()
 
-        self.train(pre_eps = previous_episode, total_steps = total_steps)
+        self.train(pre_eps = total_episodes, pre_steps = total_steps)
+        print('Starting retraining')
 
 
     def close(self):
@@ -149,12 +163,15 @@ class Trainer:
     def fill_memory_buffer(self, size = 0):
         if self.retrain_flag:
             self.load_buffer()
+            print('---------------------------------------------------------------')
+            print('Buffer memory size: ', self.agent.buffer_len.__len__())
+            print('---------------------------------------------------------------')
 
         else:
-            size = int(self.params.hyperparameters['buffer_size']/2)
+            size = 1000#int(self.params.hyperparameters['buffer_size']/4)
             while True:
                 
-                state = self.env.reset()
+                state = self.env.reset(type = 'soft')
                 #self.spawner.reset(config = self.env.config, spawn_points = self.env.walker_spawn_points, ev_id = self.env.get_ego_vehicle_id())         
 
                 for step in range(self.params.training_steps_per_episode):
@@ -169,7 +186,8 @@ class Trainer:
                         next_state, reward, done, info = self.env.step(action)
 
                     # Add experience to memory of local network
-                    self.agent.add(state = state, action = action, reward = reward, next_state = next_state, done = done)
+                    for i in range(100):
+                        self.agent.add(state = state, action = action, reward = reward, next_state = next_state, done = done)
 
                     if done:
                         break
@@ -189,12 +207,29 @@ class Trainer:
 
 
     def save_buffer(self):
-        with open(self.buffer_dir + '/replay_memory_buffer.txt', 'wb') as fp:
-            cloudpickle.dump(self.agent.buffer.memory, fp)
+        buffer_len = len(self.agent.buffer.memory)
+        total_buffers = 5
+        each_buffer_size = 1/total_buffers
+        factor = 0
+
+        for i in range(0, total_buffers):
+            file_name = self.buffer_dir + '/replay_memory_buffer_{}.bz2'.format(i)
+            with bz2.BZ2File(file_name, 'wb') as f:
+                lower_limit = int(factor*buffer_len)
+                upper_limit = int( (factor +each_buffer_size)*buffer_len )
+                buf = deque( islice(self.agent.buffer.memory, lower_limit, upper_limit) )
+                cloudpickle.dump(buf, f)
+                factor += each_buffer_size
+                time.sleep(1)
+
 
     def load_buffer(self):
-        with open(self.buffer_dir + '/replay_memory_buffer.txt', 'rb') as fp:
-            self.agent.buffer.memory = cloudpickle.load(fp)
+        total_buffers = 5
+        for i in range(0, total_buffers):
+            file_name = self.buffer_dir + '/replay_memory_buffer_{}.bz2'.format(i)
+            with bz2.BZ2File(file_name, 'rb') as f:
+                buf = cloudpickle.load(f)
+                self.agent.buffer.memory += buf
 
 
 
