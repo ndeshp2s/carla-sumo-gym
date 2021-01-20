@@ -18,6 +18,7 @@ def load_parameters(file):
     params.action_repeat = int(params_dict['action_repeat'])
     params.training_episodes = int(params_dict['training_episodes'])
     params.training_steps_per_episode = int(params_dict['training_steps_per_episode'])
+    params.training_total_steps = int(params_dict['training_total_steps'])
     params.testing_episodes = int(params_dict['testing_episodes'])
     params.testing_steps_per_episode = int(params_dict['testing_steps_per_episode'])
 
@@ -32,6 +33,7 @@ def load_parameters(file):
     params.hyperparameters['discount_rate'] = float(params_dict['discount_rate'])
     params.hyperparameters['target_network_update_frequency'] = int(params_dict['target_network_update_frequency'])
     params.hyperparameters['update_buffer_memory_frequency'] = int(params_dict['update_buffer_memory_frequency'])
+    params.hyperparameters['reward_summation'] = bool(params_dict['reward_summation'])
 
     return params
 

@@ -4,6 +4,7 @@ class Parameters:
     agent = None
     training_episodes = 0
     training_steps_per_episode = 0
+    training_total_steps = 0
     testing_episodes = 0
     testing_steps_per_episode = 0
 
@@ -20,3 +21,4 @@ class Parameters:
     hyperparameters['discount_rate'] = 0.0
     hyperparameters['target_network_update_frequency'] = 0
     hyperparameters['update_buffer_memory_frequency'] = 0
+    hyperparameters['reward_summation'] = False
