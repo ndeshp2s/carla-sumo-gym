@@ -14,7 +14,7 @@ def test_one():
 	try:
 		for i in range(10):
 			env0.reset()
-			for j in range(1000):
+			for j in range(10):
 				action = input('Enter action: ')
 				action = int(action)
 				env0.step(action = action)
@@ -36,24 +36,29 @@ def test_two():
 	from environments.urban_env_0 import config
 
 	env0 = gym.make('Urban-v0')
-	spawner = Spawner()
+	#spawner = Spawner()
+	env0.reset()
 
 
 	try:
-		for i in range(10):
-			env0.reset()
-			time.sleep(2.0)
-			spawner.reset(config = env0.config, spawn_points = env0.walker_spawn_points, ev_id = env0.get_ego_vehicle_id())
+		for i in range(1000):
+			env0.reset(type = 'soft')
+			#time.sleep(2.0)
+			#spawner.reset(config = env0.config, spawn_points = env0.walker_spawn_points, ev_id = env0.get_ego_vehicle_id())
 			
-			for j in range(1000):
-				action = input('Enter action: ')
+			for j in range(50):
+				action = 0#input('Enter action: ')
 				action = int(action)
-				print(action)
-				env0.step(action = action)
-				spawner.run_step()
-				time.sleep(0.2)
+				state, reward, done, info = env0.step(action = action)
+				#spawner.run_step()
+				#time.sleep(0.2)
 
 				#print('ev id: ', env0.get_ego_vehicle_id())
+				print(info)
+
+			# print('-----------------------')
+			# print(i)
+			# print('-----------------------')
 
 	except KeyboardInterrupt:
 		print('Closing')

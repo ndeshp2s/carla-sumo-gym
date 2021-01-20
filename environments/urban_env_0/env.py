@@ -25,10 +25,11 @@ from environments.urban_env_0.walker_spawn_points import walker_spawn_points
 from environments.urban_env_0.crosswalk_zones import at_crosswalk
 from utils.misc import euclidean_distance, compute_relative_position, compute_relative_heading, normalize_data, get_speed, get_index, ray_intersection
 from agents.tools.misc import is_within_distance_ahead, is_within_distance, compute_distance
+from environments.spawner_new import Spawner
 
 DEBUG = 0
 
-class UrbanEnv(CarlaSumoGym):
+class UrbanEnv(CarlaSumoGym, Spawner):
     def __init__(self):
         super(UrbanEnv, self).__init__()
 
@@ -52,18 +53,23 @@ class UrbanEnv(CarlaSumoGym):
 
     def step(self, action = None, action_values = None):
 
-        q_values = action_values#self.compute_q_values(action = action)
+        q_values = action_values
+        if q_values is None: q_values = self.compute_q_values(action = action)
+
+        self.run_spawner_step(ev_trans = self.get_ego_vehicle_transform())
+
+        #self.spawner.run_step()
 
         # select action to be taken
         self.take_action(max_speed = self.config.max_speed, action = action)
 
-        # perform action in the simulation environment
+        # # perform action in the simulation environment
         self.tick()
 
         # get next state and reward
         state = None
         reward = 0
-        done = 0
+        done = False
         state = self.get_observation()
         reward, done, info = self.get_reward()
 
@@ -73,30 +79,53 @@ class UrbanEnv(CarlaSumoGym):
         return state, reward, done, info
 
 
-    def reset(self):
+    def reset(self, type = 'hard'):
 
-        self.close()
+        if type is 'hard':
+            self.close()
 
-        self.connect_server_client(display = config.display, rendering = config.rendering, town = config.town, fps = config.fps, sumo_gui = config.sumo_gui)
-        
-        start_pos = config.start_position + randrange(0, 15)
-        self.spawn_ego_vehicle(position = config.start_position, type_id = config.ev_type)
+            self.connect_server_client(display = config.display, rendering = config.rendering, town = config.town, fps = config.fps, sumo_gui = config.sumo_gui)
 
-        self.add_sensors()
+            self.world.set_pedestrians_cross_factor(self.config.walker_pedestrians_crossing)
+            self.world.set_pedestrians_cross_illegal_factor(self.config.walker_pedestrians_crossing_illegal)
+            
+            self.spawn_ego_vehicle(position = config.start_position, type_id = config.ev_type)
 
-        self.tick()
+            self.add_sensors()
 
-        self.init_system()
+            self.tick()
 
-        if config.rendering:
-            self.renderer = Renderer()
-            self.renderer.create_screen(config.rendering_screen_x, config.rendering_screen_y)
+            self.ego_vehicle_id = self.get_ego_vehicle_id()
 
-        state = self.get_observation()
+            self.init_system()
 
-        print('Server and client Connected')
+            if config.rendering:
+                self.renderer = Renderer()
+                self.renderer.create_screen(config.rendering_screen_x, config.rendering_screen_y)
 
-        return state
+            state = self.get_observation()
+
+            print('Server and client Connected')
+
+            return state
+
+        else:
+            self.sumo_restart()
+            self.world.set_pedestrians_cross_factor(self.config.walker_pedestrians_crossing)
+            self.world.set_pedestrians_cross_illegal_factor(self.config.walker_pedestrians_crossing_illegal)
+            self.spawn_ego_vehicle(position = config.start_position, type_id = config.ev_type)
+            self.tick()
+            self.ego_vehicle_id = self.get_ego_vehicle_id()
+
+            self.init_system()
+
+            if config.rendering:
+                self.renderer = Renderer()
+                self.renderer.create_screen(config.rendering_screen_x, config.rendering_screen_y)
+
+            state = self.get_observation()
+
+            return state
 
 
     def get_observation(self):
@@ -183,7 +212,7 @@ class UrbanEnv(CarlaSumoGym):
 
 
     def get_reward(self):
-        done = 0
+        done = False
         info = 'None'
         total_reward = d_reward = nc_reward = c_reward = 0.0
 
@@ -219,10 +248,10 @@ class UrbanEnv(CarlaSumoGym):
         elif collision:
             if ego_vehicle_speed > 0.0:
                 c_reward = -10
-                done = 1
+                done = True
                 info = 'Normal Collision'
             else:
-                done = 1
+                done = True
                 info = 'Pedestrian Collision'
            
 
@@ -233,7 +262,7 @@ class UrbanEnv(CarlaSumoGym):
         dist = compute_distance(location_1 = ego_vehicle_trans.location, location_2 = goal_trans.location)
 
         if dist <= 10:
-            done = 1
+            done = True
             info = 'Goal Reached'
 
         # total_reward = d_reward + c_reward + nc_reward
