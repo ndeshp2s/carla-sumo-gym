@@ -28,11 +28,11 @@ class NeuralNetwork(nn.Module):
         self.conv2 = nn.Conv2d(in_channels = 32, out_channels = 64, kernel_size = (3, 3), stride = 1)
         self.conv3 = nn.Conv2d(in_channels = 64, out_channels = 64, kernel_size = (3, 3), stride = 1)
 
-        self.avg_pool = nn.AvgPool2d(kernel_size = (5, 5), stride = (3, 3))
+        self.avg_pool = nn.AvgPool2d(kernel_size = (3, 3), stride = (3, 3))
 
-        self.fc1 = nn.Linear(513, 256)
-        self.fc2 = nn.Linear(256, 64)
-        self.fc3 = nn.Linear(64, self.output_size)
+        self.fc1 = nn.Linear(128 + 1, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, self.output_size)
 
         self.relu = nn.ReLU()
 
@@ -47,7 +47,7 @@ class NeuralNetwork(nn.Module):
 
         conv_out = self.conv1(x2)
         conv_out = self.relu(conv_out)
-        #conv_out = self.avg_pool(conv_out)
+        conv_out = self.avg_pool(conv_out)
         #print(conv_out.size())
 
         conv_out = self.conv2(conv_out)

@@ -1,9 +1,9 @@
-from rl_agents.q_learning.dqn import DQNAgent
+from rl_agents.q_learning.ddqn import DDQNAgent
 from neural_networks.cnn_2 import NeuralNetwork
 
-class DDQNAgent(DQNAgent):
+class DDQNFixedTargetAgent(DDQNAgent):
     def __init__(self, state_size = 0, action_size = 0, hyperparameters = None):
-        DQNAgent.__init__(self, state_size = state_size, action_size = action_size, hyperparameters = hyperparameters)
+        DDQNAgent.__init__(self, state_size = state_size, action_size = action_size, hyperparameters = hyperparameters)
         # Initialise Q-Network
         self.target_network = NeuralNetwork(self.state_dim, self.action_dim).to(self.device)
         self.hard_update_target_network()
@@ -20,12 +20,8 @@ class DDQNAgent(DQNAgent):
 
     def compute_predicted_q_next(self, ego_vehicle_next_states, environment_next_states):
         # Find the index of action (from local network) with maximum q value 
-        max_action_index = self.local_network(x1 = ego_vehicle_next_states, x2 = environment_next_states).detach().argmax(1)
+        max_action_index = self.target_network(x1 = ego_vehicle_next_states, x2 = environment_next_states).detach().argmax(1)
         # Get the q value (from target network) corrsponding to best action in next state
-        q_next_predicted = self.target_network(x1 = ego_vehicle_next_states, x2 = environment_next_states).gather(1, max_action_index.unsqueeze(1))
+        q_next_predicted = self.target_network(x1 = ego_vehicle_next_states, x2 = environment_next_states).gather(1, max_action_index.unsqueeze(1)).squeeze(1)
 
         return q_next_predicted
-
-
-    def hard_update_target_network(self):
-        self.target_network.load_state_dict(self.local_network.state_dict())
