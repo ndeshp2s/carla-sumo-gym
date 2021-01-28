@@ -2,7 +2,7 @@ import numpy as np
 import random
 import torch
 import torch.optim as optim
-from neural_networks.cnn_2 import NeuralNetwork
+from neural_networks.cnn import NeuralNetwork
 from rl_agents.replay_buffer import ReplayBuffer
 
 class DQNAgent:
@@ -20,7 +20,9 @@ class DQNAgent:
 
         # Initialise Q-Network
         self.local_network = NeuralNetwork(self.state_dim, self.action_dim).to(self.device)
-        self.optimizer = optim.Adam(self.local_network.parameters(), lr = self.hyperparameters["learning_rate"])
+        self.target_network = NeuralNetwork(self.state_dim, self.action_dim).to(self.device)
+        self.hard_update_target_network()
+        self.optimizer = optim.Adam(self.local_network.parameters(), lr = self.hyperparameters["learning_rate"], eps = 1e-4)
         self.criterion = torch.nn.MSELoss()
 
         # Initialise replay memory
@@ -68,9 +70,26 @@ class DQNAgent:
         # dones = torch.from_numpy(np.vstack([e.done for e in experiences if e is not None])).float().to(self.device)
 
         ## COMPUTE THE LOSS
-        q_predicted = self.compute_predicted_q(ego_vehicle_states = ego_vehicle_states, environment_states = environment_states, actions = actions)
+        #q_predicted = self.compute_predicted_q(ego_vehicle_states = ego_vehicle_states, environment_states = environment_states, actions = actions)
 
-        q_target = self.compute_target_q(ego_vehicle_next_states = ego_vehicle_next_states, environment_next_states  = environment_next_states , rewards = rewards, dones = dones)
+        #q_target = self.compute_target_q(ego_vehicle_next_states = ego_vehicle_next_states, environment_next_states  = environment_next_states , rewards = rewards, dones = dones)
+
+        # Get the q values for all actions from local network
+        q_predicted_all = self.local_network.forward(x1 = ego_vehicle_states, x2 = environment_states)
+        #Get the q value corresponding to the action executed
+        q_predicted = q_predicted_all.gather(dim = 1, index = actions.unsqueeze(dim = 1)).squeeze(dim = 1)
+        # Get q values for all the actions of next state
+        q_next_predicted_all = self.local_network.forward(x1 = ego_vehicle_next_states, x2 = environment_next_states)
+        
+        # get q values for the actions of next state from target netwrok
+        q_next_target_all = self.target_network.forward(x1 = ego_vehicle_next_states, x2 = environment_next_states)
+        # get q value of action with same index as that of the action with maximum q values (from local network)
+        q_next_target = q_next_target_all.gather(1, q_next_predicted_all.max(1)[1].unsqueeze(1)).squeeze(1)
+        # Find target q value using Bellmann's equation
+        q_target = rewards + (self.hyperparameters["discount_rate"] * q_next_target *(1 - dones))
+
+
+
 
         # Compute the loss
         loss = self.criterion(q_predicted, q_target)
@@ -101,7 +120,7 @@ class DQNAgent:
         # Get the q value corrsponding to best action in next state
         q_next_predicted = self.compute_predicted_q_next(ego_vehicle_next_states = ego_vehicle_next_states, environment_next_states  = environment_next_states)
         # Find target q value using Bellmann's equation
-        q_target = rewards + (self.hyperparameters["discount_rate"] * q_next_predicted * (1 - dones))
+        q_target = rewards + (self.hyperparameters["discount_rate"] * q_next_predicted)
         return q_target
 
 
@@ -122,11 +141,15 @@ class DQNAgent:
         # Query the network
         action_values = self.local_network.forward(x1 = ego_vehicle_state_tensor, x2 = environment_state_tensor)
 
-        if random.random() > epsilon:
+        if np.random.uniform() > epsilon:
             action = action_values.max(1)[1].item()
 
         else:
-            action = np.random.randint(0, action_values.shape[1])
+            action = np.random.randint(0, 4)
 
         return action, action_values[0].squeeze(0)
+
+
+    def hard_update_target_network(self):
+        self.target_network.load_state_dict(self.local_network.state_dict())
 

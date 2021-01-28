@@ -134,7 +134,7 @@ class CarlaSumoGym(gym.Env):
 
         # brake    
         elif action == 3:
-            acceleration = -7.5
+            acceleration = -10.0
             desired_speed = ev_speed + dt*acceleration
 
 

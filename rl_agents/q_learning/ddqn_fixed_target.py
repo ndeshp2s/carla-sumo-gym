@@ -1,5 +1,5 @@
 from rl_agents.q_learning.ddqn import DDQNAgent
-from neural_networks.cnn_2 import NeuralNetwork
+from neural_networks.cnn import NeuralNetwork
 
 class DDQNFixedTargetAgent(DDQNAgent):
     def __init__(self, state_size = 0, action_size = 0, hyperparameters = None):

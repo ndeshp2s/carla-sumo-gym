@@ -89,7 +89,7 @@ class Trainer:
                 # compute the loss
                 loss = 0
                 if self.agent.buffer.__len__() > self.params.hyperparameters['batch_size']:
-                    #loss = self.agent.learn(batch_size = self.params.hyperparameters['batch_size'])
+                    loss = self.agent.learn(batch_size = self.params.hyperparameters['batch_size'])
                     # save the loss
                     self.writer.add_scalar('Loss per step', loss, total_steps)
 
@@ -168,7 +168,7 @@ class Trainer:
             print('---------------------------------------------------------------')
 
         else:
-            size = 1000#int(self.params.hyperparameters['buffer_size']/4)
+            size = int(self.params.hyperparameters['buffer_size'])
             while True:
                 
                 state = self.env.reset(type = 'soft')
@@ -186,8 +186,7 @@ class Trainer:
                         next_state, reward, done, info = self.env.step(action)
 
                     # Add experience to memory of local network
-                    for i in range(100):
-                        self.agent.add(state = state, action = action, reward = reward, next_state = next_state, done = done)
+                    self.agent.add(state = state, action = action, reward = reward, next_state = next_state, done = done)
 
                     if done:
                         break

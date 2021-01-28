@@ -268,7 +268,7 @@ def main():
     world.apply_settings(carla.WorldSettings(synchronous_mode = True, fixed_delta_seconds = 0.1))
 
     # Spawn a dummy ego vehicle
-    sp = carla.Transform(carla.Location(x = 34.4, y = -1.7, z = 0.1), carla.Rotation(yaw = 180))
+    sp = carla.Transform(carla.Location(x = 14.4, y = -1.7, z = 0.1), carla.Rotation(yaw = 180))
     bp = random.choice(world.get_blueprint_library().filter('vehicle.audi.etron'))
     bp.set_attribute('role_name', 'hero')
 
@@ -277,7 +277,7 @@ def main():
     world.tick()
 
     spawner = Spawner(client, walker_spawn_points, ego_vehicle.id)
-    spawner.update_config(max_dist_ped = config.maximum_distance_pedestrian, min_dist_ped = config.minimum_distance_pedestrian, num_of_ped = config.number_of_pedestrians, ped_crossing = config.pedestrian_crossing_legal, ped_crossing_illegal = config.pedestrian_crossing_illegal)
+    #spawner.update_config(max_dist_ped = config.maximum_distance_pedestrian, min_dist_ped = config.minimum_distance_pedestrian, num_of_ped = config.number_of_pedestrians, ped_crossing = config.pedestrian_crossing_legal, ped_crossing_illegal = config.pedestrian_crossing_illegal)
 
 
     try:

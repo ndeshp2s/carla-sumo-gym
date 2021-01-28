@@ -40,31 +40,33 @@ def test_two():
 	env0.reset()
 
 
-	try:
-		for i in range(1000):
-			env0.reset(type = 'soft')
-			#time.sleep(2.0)
-			#spawner.reset(config = env0.config, spawn_points = env0.walker_spawn_points, ev_id = env0.get_ego_vehicle_id())
+	# try:
+	# 	for i in range(1000):
+	# 		env0.reset(type = 'soft')
+	# 		#time.sleep(2.0)
+	# 		#spawner.reset(config = env0.config, spawn_points = env0.walker_spawn_points, ev_id = env0.get_ego_vehicle_id())
 			
-			for j in range(50):
-				action = 0#input('Enter action: ')
-				action = int(action)
-				state, reward, done, info = env0.step(action = action)
-				#spawner.run_step()
-				#time.sleep(0.2)
+	# 		for j in range(200):
+	# 			action = input('Enter action: ')
+	# 			action = int(action)
+	# 			for i in range(0, 1):
+	# 				state, reward, done, info = env0.step(action = action)
+	# 			#spawner.run_step()
+	# 			#time.sleep(0.2)
 
-				#print('ev id: ', env0.get_ego_vehicle_id())
-				print(info)
+	# 			#print('ev id: ', env0.get_ego_vehicle_id())
+	# 			print('speed: ', env0.get_ego_vehicle_speed(kmph = False))
+	# 			print('Reward: ', reward)
 
-			# print('-----------------------')
-			# print(i)
-			# print('-----------------------')
+	# 		# print('-----------------------')
+	# 		# print(i)
+	# 		# print('-----------------------')
 
-	except KeyboardInterrupt:
-		print('Closing')
+	# except KeyboardInterrupt:
+	# 	print('Closing')
 
-	finally:
-		env0.close()
+	# finally:
+	# 	env0.close()
 
 
 

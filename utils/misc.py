@@ -155,19 +155,19 @@ def load_parameters(file, params):
 def normalize_data(data, min_val, max_val):
     return (data - min_val) / (max_val - min_val)
 
-def ray_intersection(pos_one, pos_two, vec_one, vec_two):
-    p1_x = pos_one.x
-    p1_y = pos_one.y
-    p2_x = pos_two.x
-    p2_y = pos_two.y
-    n1_x = ego_veh_forward_vector.x
-    n1_y = ego_veh_forward_vector.y
-            # n2_x = walker_forward_vector.x
-            # n2_y = walker_forward_vector.y
-            # u = (p1_y * n2_x + n2_y * p2_x - p2_y * n2_x - n2_y * p1_x) / (n1_x * n2_y - n1_y * n2_x)
-            # v = (p1_x + n1_x * u - p2_x) / n2_x
+# def ray_intersection(pos_one, pos_two, vec_one, vec_two):
+#     p1_x = pos_one.x
+#     p1_y = pos_one.y
+#     p2_x = pos_two.x
+#     p2_y = pos_two.y
+#     n1_x = ego_veh_forward_vector.x
+#     n1_y = ego_veh_forward_vector.y
+#             # n2_x = walker_forward_vector.x
+#             # n2_y = walker_forward_vector.y
+#             # u = (p1_y * n2_x + n2_y * p2_x - p2_y * n2_x - n2_y * p1_x) / (n1_x * n2_y - n1_y * n2_x)
+#             # v = (p1_x + n1_x * u - p2_x) / n2_x
 
-def ray_intersection(p1, p2, n1, n2):
+def ray_intersection(p1, p2, n1, n2, dist):
     if (n1.y * n2.x - n1.x * n2.y) == 0.0 or n2.x == 0.0:
         return False
 
@@ -175,9 +175,67 @@ def ray_intersection(p1, p2, n1, n2):
     v = (p1.x + n1.x * u - p2.x) / n2.x
 
     if u > 0 and v > 0:
+        # print('intersection: ', get_intersection(p1, p2, n1, n2), dist)
+        # if get_intersection(p1, p2, n1, n2) <= dist:
         return True
 
     return False
+
+def get_intersection(p1, p2, n1, n2):
+    A = p1
+    B = p1 + n1
+    C = p2
+    D = p2 + n2
+
+    # a1x + b1y = c1
+    a1 = B.y - A.y
+    b1 = A.x - B.x
+    c1 = a1 * (A.x) + b1 * (A.y)
+
+    # a2x + b2y = c2
+    a2 = D.y - C.y
+    b2 = C.x - D.x
+    c2 = a2 * (C.x) + b2 * (C.y)
+
+    # determinant
+    det = a1 * b2 - a2 * b1
+
+    # parallel line
+    if det == 0:
+        return 10000.0
+
+    # intersect point(x,y)
+    x = ((b2 * c1) - (b1 * c2)) / det
+    y = ((a1 * c2) - (a2 * c1)) / det
+
+    dx = p2.x - x
+    dy = p2.y - y
+
+    return math.sqrt(dx * dx + dy * dy)
+    #return (x, y)
+
+
+
+
+
+
+    # p1_end = p1 + n1
+    # p2_end = p2 + n2
+
+    # m1 = (p1_end.y - p1.y)/(p1_end.x - p1.x)
+    # m2 = (p2_end.y - p2.y)/(p2_end.x - p2.x)
+
+    # b1 = p1.y - m1 * p1.x
+    # b2 = p2.y - m2 * p2.x
+
+    # px = (b2 - b1) / (m1 - m2)
+    # py = m1 * px + b1
+
+    # # find distance
+    # dx = p1.x - destination_transform.location.x
+    # dy = p1.y - destination_transform.location.y
+
+    # return math.sqrt(dx * dx + dy * dy)
 
 
 def create_directory(dir, recreate = True):

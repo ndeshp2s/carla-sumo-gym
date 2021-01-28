@@ -1,5 +1,5 @@
 from rl_agents.q_learning.dqn import DQNAgent
-from neural_networks.cnn_2 import NeuralNetwork
+from neural_networks.cnn import NeuralNetwork
 
 class DDQNAgent(DQNAgent):
     def __init__(self, state_size = 0, action_size = 0, hyperparameters = None):
@@ -22,7 +22,7 @@ class DDQNAgent(DQNAgent):
         # Find the index of action (from local network) with maximum q value 
         max_action_index = self.local_network(x1 = ego_vehicle_next_states, x2 = environment_next_states).detach().argmax(1)
         # Get the q value (from target network) corrsponding to best action in next state
-        q_next_predicted = self.target_network(x1 = ego_vehicle_next_states, x2 = environment_next_states).gather(1, max_action_index.unsqueeze(1))
+        q_next_predicted = self.target_network(x1 = ego_vehicle_next_states, x2 = environment_next_states).gather(1, max_action_index.unsqueeze(1)).squeeze(1)
 
         return q_next_predicted
 

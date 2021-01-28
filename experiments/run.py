@@ -8,6 +8,9 @@ from experiments.trainer import Trainer
 from experiments.tester import Tester
 from utils.load_parameters import load_parameters
 from experiments.parameters import Parameters
+
+from rl_agents.q_learning.dqn import DQNAgent
+from rl_agents.q_learning.ddqn import DDQNAgent
 from rl_agents.q_learning.ddqn_fixed_target import DDQNFixedTargetAgent
 
 import environments
@@ -32,7 +35,12 @@ def main(args):
     env.reset()
 
     # Initialize the agent
-    agent = DDQNFixedTargetAgent(state_size = state_size, action_size = action_size, hyperparameters = params.hyperparameters)
+    if params.agent == 'DQNAgent':
+        agent = DQNAgent(state_size = state_size, action_size = action_size, hyperparameters = params.hyperparameters)
+    elif params.agent == 'DDQNAgent':
+        agent = DDQNAgent(state_size = state_size, action_size = action_size, hyperparameters = params.hyperparameters)
+    elif params.agent == 'DDQNFixedTargetAgent':
+        agent = DDQNFixedTargetAgent(state_size = state_size, action_size = action_size, hyperparameters = params.hyperparameters)
 
     # Initialize spawner
     spawner = Spawner()

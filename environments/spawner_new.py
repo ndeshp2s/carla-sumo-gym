@@ -5,7 +5,7 @@ import time
 
 # carla library
 try:
-    sys.path.append(glob.glob('../carla/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
+    sys.path.append(glob.glob('/home/niranjan/Desktop/carla/Dist/CARLA_Shipping_0.9.11/LinuxNoEditor/PythonAPI/carla/dist/carla-*%d.%d-%s.egg' % (
         sys.version_info.major,
         sys.version_info.minor,
         'win-amd64' if os.name == 'nt' else 'linux-x86_64'))[0])
@@ -75,8 +75,8 @@ class Spawner(object):
             
             walker_sp = carla.Transform()
             walker_sp = random.choice(spawn_points)            
-            # walker_sp.location.x += random.uniform(-0.1, 0.1)
-            # walker_sp.location.y += random.uniform(-0.1, 0.1)
+            walker_sp.location.x += random.uniform(-0.2, 0.2)
+            walker_sp.location.y += random.uniform(-0.2, 0.2)
 
             walker = self.world.try_spawn_actor(walker_bp, walker_sp)
 

@@ -1,6 +1,7 @@
 import os 
 import sys
 import glob
+import math
 
 import numpy as np
 import gym
@@ -61,7 +62,7 @@ class UrbanEnv(CarlaSumoGym, Spawner):
         #self.spawner.run_step()
 
         # select action to be taken
-        self.take_action(max_speed = self.config.max_speed, action = action)
+        self.take_action(max_speed = 8.0, action = action)
 
         # # perform action in the simulation environment
         self.tick()
@@ -74,7 +75,15 @@ class UrbanEnv(CarlaSumoGym, Spawner):
         reward, done, info = self.get_reward()
 
         environment_state = state[1]
-        self.render(model_output = q_values, speed = self.get_ego_vehicle_speed(kmph = False), grid = environment_state[:,:,3])
+        self.render(model_output = q_values, speed = self.get_ego_vehicle_speed(kmph = False), grid = environment_state[:,:,0])
+
+        if self.rgb_sensor is not None:
+            #print(self.rgb_sensor.get_transform())
+            ev_trans = self.get_ego_vehicle_transform()
+            ev_trans.location.x += 9.0
+            ev_trans.location.y += 0.0
+            ev_trans.location.z += 6.0
+            self.rgb_sensor.set_transform(ev_trans)
 
         return state, reward, done, info
 
@@ -90,6 +99,8 @@ class UrbanEnv(CarlaSumoGym, Spawner):
             self.world.set_pedestrians_cross_illegal_factor(self.config.walker_pedestrians_crossing_illegal)
             
             self.spawn_ego_vehicle(position = config.start_position, type_id = config.ev_type)
+
+            self.tick()
 
             self.add_sensors()
 
@@ -135,28 +146,28 @@ class UrbanEnv(CarlaSumoGym, Spawner):
         # Get ego vehicle information
         ego_vehicle_trans = self.get_ego_vehicle_transform()
         ego_vehicle_speed = self.get_ego_vehicle_speed(kmph = False)
-        ego_vehicle_speed_norm = normalize_data(data = ego_vehicle_speed, min_val = 0, max_val = self.config.max_speed)
-        ego_vehicle_speed_norm = round(ego_vehicle_speed_norm, 2)
+        ego_vehicle_speed_norm = normalize_data(data = ego_vehicle_speed, min_val = 0, max_val = 12.0)
+        ego_vehicle_speed_norm = round(ego_vehicle_speed_norm, 4)
         ego_vehicle_state[0] = ego_vehicle_speed_norm
 
 
-        # # Fill grid with ego vehicle position
-        # for i in range(0, 1):
-        #     for j in range(0, 1):
-        #         x_discrete, status = get_index(val = i, start = self.config.grid_height_min, stop = self.config.grid_height_max, num = self.config.grid_height)
-        #         y_discrete, status = get_index(val = j, start = self.config.grid_width_min, stop = self.config.grid_width_max, num = self.config.grid_width)
+        # Fill grid with ego vehicle position
+        for i in range(0, 1):
+            for j in range(0, 1):
+                x_discrete, status = get_index(val = i, start = self.config.grid_height_min, stop = self.config.grid_height_max, num = self.config.grid_height)
+                y_discrete, status = get_index(val = j, start = self.config.grid_width_min, stop = self.config.grid_width_max, num = self.config.grid_width)
 
-        #         x_discrete = np.argmax(x_discrete)
-        #         y_discrete = np.argmax(y_discrete)
+                x_discrete = np.argmax(x_discrete)
+                y_discrete = np.argmax(y_discrete)
 
-        #         # lane type
-        #         waypoint = self.map.get_waypoint(ego_vehicle_trans.location, project_to_road=True, lane_type=(carla.LaneType.Driving))
-        #         ev_lane = self.find_lane_type(wp = waypoint, trans = ego_vehicle_trans)
-        #         ev_lane_norm = normalize_data(data = ev_lane, min_val = 0, max_val = 3)
-        #         ev_lane_norm = round(ev_lane_norm, 2)
+                # lane type
+                waypoint = self.map.get_waypoint(ego_vehicle_trans.location, project_to_road=True, lane_type=(carla.LaneType.Driving))
+                ev_lane = self.find_lane_type(wp = waypoint, trans = ego_vehicle_trans)
+                ev_lane_norm = normalize_data(data = ev_lane, min_val = 0, max_val = 3)
+                ev_lane_norm = round(ev_lane_norm, 2)
                 
-        #         # state update for ego vehicle -> occupancy, heading, speed, lane type
-        #         environment_state[x_discrete, y_discrete, :] = [0.5, 0.0, ego_vehicle_speed_norm, ev_lane_norm]
+                # state update for ego vehicle -> occupancy, heading, speed, lane type
+                environment_state[x_discrete, y_discrete, :] = [0.5, 0.0, ego_vehicle_speed_norm]
 
 
         # Fill walkers information
@@ -179,14 +190,14 @@ class UrbanEnv(CarlaSumoGym, Spawner):
                 w_relative_heading = compute_relative_heading(source_transform = ego_vehicle_trans, destination_transform = w_trans)
 
                 # walker speed
-                w_speed = round(get_speed(w), 2)
+                w_speed = round(get_speed(w), 4)
 
                 # walker lane type
                 waypoint = self.map.get_waypoint(w_trans.location, project_to_road=True, lane_type=(carla.LaneType.Driving | carla.LaneType.Sidewalk))
 
                 if waypoint.lane_type == carla.LaneType.Driving:
                     w_lane = 1
-                elif waypoint.lane_type == carla.LaneType.Sidewalk or waypoint.lane_type == carla.LaneType.Shoulder:
+                elif waypoint.lane_type == carla.LaneType.Sidewalk:
                     w_lane = 2
                 if at_crosswalk(w_trans.location.x, w_trans.location.y):
                     w_lane = 3
@@ -196,14 +207,12 @@ class UrbanEnv(CarlaSumoGym, Spawner):
                 w_relative_heading_norm = normalize_data(data = w_relative_heading, min_val = 0, max_val = 360.0)
                 w_relative_heading_norm = round(w_relative_heading_norm, 2)
                 w_speed_norm = normalize_data(data = w_speed, min_val = 0, max_val = self.config.max_speed)
-                w_speed_norm = round(w_speed_norm, 2)
+                w_speed_norm = round(w_speed_norm, 4)
                 w_lane_norm = normalize_data(data = w_lane, min_val = 0, max_val = 3)
-                w_lane_norm = round(w_lane_norm, 2)
-                w_lane_norm = round(w_lane_norm, 2)
+                w_lane_norm = round(w_lane_norm, 4)
 
                 # state update for walker w-> occupancy, heading, speed
-                environment_state[x_discrete, y_discrete,:] = [1.0, w_relative_heading_norm, w_speed_norm, w_lane_norm] 
-
+                environment_state[x_discrete, y_discrete,:] = [1.0, w_speed_norm, w_relative_heading_norm] 
 
         state_tensor = []
         state_tensor.append(ego_vehicle_state)
@@ -218,41 +227,60 @@ class UrbanEnv(CarlaSumoGym, Spawner):
 
         # reward for speed
         ego_vehicle_speed = self.get_ego_vehicle_speed(kmph = False)
-        ego_vehicle_speed = round(ego_vehicle_speed, 2)
+        ego_vehicle_speed = round(ego_vehicle_speed, 4)
 
-        target_speed = self.config.target_speed
-        if ego_vehicle_speed > 0.0 and ego_vehicle_speed <= target_speed:
+        target_speed = 8.0#self.config.target_speed
+        if ego_vehicle_speed > 0.0:# and ego_vehicle_speed <= target_speed:
             d_reward = (target_speed - abs(target_speed - ego_vehicle_speed))/target_speed
         elif ego_vehicle_speed <= 0.0:
-            d_reward = -1.0
-        elif ego_vehicle_speed > target_speed:
-            d_reward = -1.0
+            d_reward = -0.1
+        # elif ego_vehicle_speed > target_speed:
+        #     d_reward = -0.1
 
         # reward for collision
+        center_to_bumper_dist = 0.0
+        safety_distance = 1.0
         walker_list = self.world.get_actors().filter('walker.pedestrian.*')
-        nc_dist_max = (ego_vehicle_speed*ego_vehicle_speed)/(2*2.5) + 2.5
-        nc_dist_min = (ego_vehicle_speed*ego_vehicle_speed)/(2*7.5) + 2.5
+        nc_dist_max = (ego_vehicle_speed*ego_vehicle_speed)/(2*2.5) + center_to_bumper_dist
+        nc_dist_min = (ego_vehicle_speed*ego_vehicle_speed)/(2*7.5)
         nc_dist_max = round(nc_dist_max, 2)
         nc_dist_min = round(nc_dist_min, 2)
+
+        nc_dist_max = max(nc_dist_max, center_to_bumper_dist + safety_distance)
+        if DEBUG: print('Distance: ', nc_dist_max)
+
         collision, near_collision, walker, distance = self.find_collision(walker_list = walker_list, range = nc_dist_max)
-        if near_collision:
-            nc_reward = normalize_data(data = distance, min_val = nc_dist_max, max_val = 0)
-
-            if distance >= nc_dist_min:
-                nc_reward = -2 * nc_reward
-            elif distance < nc_dist_min:
-                nc_reward = -4 * nc_reward
-
-            nc_reward = round(nc_reward, 4)
-
-        elif collision:
+        if DEBUG: print('Ped dist: ', distance)
+        if collision:
             if ego_vehicle_speed > 0.0:
                 c_reward = -10
                 done = True
-                info = 'Normal Collision'
+                info = 'NormalCollision'
             else:
-                done = True
-                info = 'Pedestrian Collision'
+                done = False
+                info = 'PedestrianCollision'
+
+
+        elif near_collision:
+            # nc_reward = normalize_data(data = distance, min_val = nc_dist_max, max_val = 0)
+
+            # if distance >= nc_dist_min:
+            #     nc_reward = -2 * nc_reward
+            # elif distance < nc_dist_min:
+            #     nc_reward = -4 * nc_reward
+
+            if (distance - nc_dist_max) < 0 and ego_vehicle_speed > 0.0:
+                nc_reward = -4 * np.exp( -((distance - nc_dist_max)/nc_dist_max) )
+                nc_reward = round(nc_reward, 2)
+
+            # if (distance - nc_dist_max) <= 0 and ego_vehicle_speed > 0.0:
+            #     nc_reward = -4 * np.exp(-x)
+            # nc_reward = round(nc_reward, 2)
+
+            # if distance < 8.0:
+            #     nc_reward = -2.0
+
+
            
 
         # check goal reached
@@ -265,20 +293,26 @@ class UrbanEnv(CarlaSumoGym, Spawner):
             done = True
             info = 'Goal Reached'
 
-        # total_reward = d_reward + c_reward + nc_reward
+
+        #total_reward = self.compute_total_reward(d_reward = d_reward, nc_reward = nc_reward, c_reward = c_reward)
+        # if collision:
+        #     total_reward = c_reward
+        # elif near_collision:
+        #     total_reward = nc_reward
+        # else:
+        #     total_reward = d_reward
         # total_reward = round(total_reward, 4)
 
-        if collision:
-            total_reward = c_reward
-        elif near_collision:
-            total_reward = nc_reward
-        else:
-            total_reward = d_reward
-
+        total_reward = d_reward + c_reward + nc_reward
         total_reward = round(total_reward, 4)
 
-
         return total_reward, done, info
+
+
+    def compute_total_reward(self, d_reward, nc_reward, c_reward):
+        total_reward = d_reward + c_reward + nc_reward
+        total_reward = round(total_reward, 2)
+        return total_reward
 
 
     def orientation(self, p, q, r):
@@ -300,49 +334,82 @@ class UrbanEnv(CarlaSumoGym, Spawner):
 
         ego_vehicle = self.get_ego_vehicle()
 
-        if DEBUG: self.world.debug.draw_box(carla.BoundingBox(ego_vehicle.get_transform().location, ego_vehicle.bounding_box.extent), ego_vehicle.get_transform().rotation, 0.1, carla.Color(255,255,0,0), 0.10) 
+        # if DEBUG: 
+        #     ego_vehicle_bb_extent = ego_vehicle.bounding_box.extent
+        #     self.world.debug.draw_box(carla.BoundingBox(ego_vehicle.get_transform().location, ego_vehicle_bb_extent), ego_vehicle.get_transform().rotation, 0.1, carla.Color(255,255,0,0), 0.10) # ego vehicle bounding box
+        
+        walker_list = [w for w in walker_list if self.compute_bounding_box_distance(entity_one = w, entity_two = ego_vehicle) <= (math.sqrt(2*(range ** 2)))]
 
-        walker_list = [w for w in walker_list if self.compute_bounding_box_distance(entity_one = w, entity_two = ego_vehicle) <= range]
+        if len(walker_list) == 0:
+            return (collision, near_collision, walker, distance)
 
         # iterate over the list
         for target_walker in walker_list:
-            if DEBUG: self.world.debug.draw_box(carla.BoundingBox(target_walker.get_transform().location, target_walker.bounding_box.extent), target_walker.get_transform().rotation, 0.1, carla.Color(0,0,0,255), 0.1)
+            if DEBUG: self.world.debug.draw_box(carla.BoundingBox(target_walker.get_transform().location, target_walker.bounding_box.extent), target_walker.get_transform().rotation, 0.1, carla.Color(255,255,255,255), 0.1) # walker bounding box (white colored)
 
             # check if walker is on driving lane
             target_wp = self.map.get_waypoint(target_walker.get_transform().location, project_to_road = True, lane_type = (carla.LaneType.Driving | carla.LaneType.Sidewalk))
+            if target_wp is None:
+                continue
             if target_wp.lane_type != carla.LaneType.Driving:
                 continue
 
-            if DEBUG: self.world.debug.draw_box(carla.BoundingBox(target_walker.get_transform().location, target_walker.bounding_box.extent), target_walker.get_transform().rotation, 0.1, carla.Color(255,0,0,255), 0.1)
+            if DEBUG: self.world.debug.draw_box(carla.BoundingBox(target_walker.get_transform().location, target_walker.bounding_box.extent), target_walker.get_transform().rotation, 0.1, carla.Color(0,255,255,255), 0.1) # on-road walker bounding box (yellow colored)
     
             walker_dist = self.compute_bounding_box_distance(entity_one = target_walker, entity_two = ego_vehicle)
+            #walker_dist -= 0.1
             walker_dist = round(walker_dist, 4)
 
             # check for collision
             if walker_dist <= 0.1:
-                if DEBUG: self.world.debug.draw_box(carla.BoundingBox(target_walker.get_transform().location, target_walker.bounding_box.extent), target_walker.get_transform().rotation, 0.1, carla.Color(0,0,255,255), 0.1)
+                if DEBUG: self.world.debug.draw_box(carla.BoundingBox(target_walker.get_transform().location, target_walker.bounding_box.extent), target_walker.get_transform().rotation, 0.1, carla.Color(0,0,255,255), 0.1) #collision walker bounding box (red colored)
                 collision = True
                 walker = target_walker
                 return (collision, near_collision, walker, distance)
 
             # check for near collision
-
-            # same or next lane
+            #same or next lane
+            #target_walker_trans = target_walker.get_transform()
+            #self.world.debug.draw_arrow(target_walker_trans.location, target_walker_trans.location + target_walker_trans.get_forward_vector()*10,thickness=0.05, arrow_size=0.1, color=carla.Color(255,255,255,255), life_time=0.1)
             target_walker_relative_position = compute_relative_position(source_transform = ego_vehicle.get_transform(), destination_transform = target_walker.get_transform())
-            if (target_walker_relative_position[1] >= -2.0 and target_walker_relative_position[1] <= 2.0):
-                if DEBUG: self.world.debug.draw_box(carla.BoundingBox(target_walker.get_transform().location, target_walker.bounding_box.extent), target_walker.get_transform().rotation, 0.1, carla.Color(0,255,0,255), 0.1)
+            if (target_walker_relative_position[1] >= -2.0 and target_walker_relative_position[1] <= 3.0):
+               #ray_intersection(p1 = target_walker.get_transform().location, p2 = ego_vehicle.get_transform().location, n1 = target_walker.get_transform().get_forward_vector(), n2 = ego_vehicle.get_transform().get_forward_vector(), dist = (math.sqrt(2*(range ** 2)))):
+                if DEBUG: self.world.debug.draw_box(carla.BoundingBox(target_walker.get_transform().location, target_walker.bounding_box.extent), target_walker.get_transform().rotation, 0.1, carla.Color(255,255,0,0), 0.1) # crossing-same-lane walker bounding box (blue colored)
                 if distance > walker_dist:
                     near_collision = True
                     distance = walker_dist
                     walker = target_walker
 
-            elif (target_walker_relative_position[1] >= -8.0 and target_walker_relative_position[1] <= 2.0) and \
-                ray_intersection(p1 = target_walker.get_transform().location, p2 = ego_vehicle.get_transform().location, n1 = target_walker.get_transform().get_forward_vector(), n2 = ego_vehicle.get_transform().get_forward_vector()):
-                if DEBUG: self.world.debug.draw_box(carla.BoundingBox(target_walker.get_transform().location, target_walker.bounding_box.extent), target_walker.get_transform().rotation, 0.1, carla.Color(0,255,0,255), 0.1)
+            elif (target_walker_relative_position[1] >= -8.0 and target_walker_relative_position[1] <= 3.0 and target_walker_relative_position[0] >= 3.0) and \
+                ray_intersection(p1 = target_walker.get_transform().location, p2 = ego_vehicle.get_transform().location, n1 = target_walker.get_transform().get_forward_vector(), n2 = ego_vehicle.get_transform().get_forward_vector(), dist = (math.sqrt(2*(range ** 2)))):
+                if DEBUG: self.world.debug.draw_box(carla.BoundingBox(target_walker.get_transform().location, target_walker.bounding_box.extent), target_walker.get_transform().rotation, 0.1, carla.Color(0,255,0,255), 0.1) # crossing-side-lane walker bounding box (blue colored)
                 if distance > walker_dist:
                     near_collision = True
                     distance = walker_dist
                     walker = target_walker
+
+
+
+        
+            #return (collision, near_collision, walker, distance)
+
+        if DEBUG and walker is not None: self.world.debug.draw_box(carla.BoundingBox(walker.get_transform().location, walker.bounding_box.extent), walker.get_transform().rotation, 0.1,  carla.Color(0,0,255,255), 0.1)    
+
+        return (collision, near_collision, walker, distance)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
                         # ego_veh_forward_vector = ego_vehicle_trans.get_forward_vector()
             # walker_forward_vector = target_walker_trans.get_forward_vector()
@@ -422,9 +489,7 @@ class UrbanEnv(CarlaSumoGym, Spawner):
         #                 walker = target_walker   
 
         
-        if DEBUG and walker is not None: self.world.debug.draw_box(carla.BoundingBox(walker.get_transform().location, walker.bounding_box.extent), walker.get_transform().rotation, 0.1,  carla.Color(0,255,255,255), 0.1)    
-        
-        return (collision, near_collision, walker, distance)
+
 
 
             # # check for heading direction
@@ -522,7 +587,7 @@ class UrbanEnv(CarlaSumoGym, Spawner):
             rgb_bp.set_attribute('image_size_x', config.rgb_size_x)
             rgb_bp.set_attribute('image_size_y', config.rgb_size_y)
             rgb_bp.set_attribute('fov', config.rgb_fov)
-            transform = carla.Transform(carla.Location(x = config.rgb_loc_x, z = config.rgb_loc_z))
+            transform = carla.Transform(carla.Location(x = config.rgb_loc_x, z = config.rgb_loc_z), carla.Rotation(pitch=-90.0, yaw=0.0, roll=0.0))
             ego_vehicle = self.world.get_actor(self.get_ego_vehicle_id())
 
             self.rgb_sensor = self.world.spawn_actor(rgb_bp, transform, attach_to = ego_vehicle)
@@ -572,7 +637,7 @@ class UrbanEnv(CarlaSumoGym, Spawner):
 
     def init_system(self):
         for i in range(5):
-            self.take_action(action = 3)
+            self.take_action(max_speed = self.config.max_speed, action = 3)
 
 
     def compute_q_values(self, action = 0):

@@ -11,8 +11,8 @@ ev_type = 'vehicle.audi.etron'
 goal_x = -140.0
 goal_y = 48.25
 
-max_speed = 15 # in mps
-target_speed = 10 # in mps
+max_speed = 12 # in mps
+target_speed = 8 # in mps
 
 
 
@@ -31,15 +31,15 @@ rendering_screen_y = 720
 rgb_sensor = False
 rgb_size_x = '1920'
 rgb_size_y = '1080'
-rgb_fov = '110'
-rgb_loc_x = -8.0
+rgb_fov = '120'
+rgb_loc_x = 13.0
 rgb_loc_y = 0.0
-rgb_loc_z = 4.5
+rgb_loc_z = 10.5
 
 # observation space related
-grid_height = 30*2
-grid_width = 20*2
-features = 4
+grid_height = 30*4
+grid_width = 20*4
+features = 3
 
 grid_height_min = -4
 grid_height_max = 25
@@ -53,12 +53,12 @@ N_DISCRETE_ACTIONS = 4
 
 ### spawner related ###
 spawner_frequency = 1
-number_of_walkers = 2
-walker_spawn_distance_maximum = 25.0
-walker_spawn_distance_minimum = 1.0
-walker_allowed_distance_maximum = 30.0
-walker_allowed_distance_minimum = 0.0
-walker_pedestrians_crossing = 0.0
+number_of_walkers = 30
+walker_spawn_distance_maximum = 35.0
+walker_spawn_distance_minimum = 0.0
+walker_allowed_distance_maximum = 40.0
+walker_allowed_distance_minimum = -5.0
+walker_pedestrians_crossing = 0.8
 walker_pedestrians_crossing_illegal = 0.0
 
 maximum_distance_pedestrian = 40.0
