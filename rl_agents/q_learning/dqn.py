@@ -82,7 +82,7 @@ class DQNAgent:
         q_next_predicted_all = self.local_network.forward(x1 = ego_vehicle_next_states, x2 = environment_next_states)
         
         # get q values for the actions of next state from target netwrok
-        q_next_target_all = self.target_network.forward(x1 = ego_vehicle_next_states, x2 = environment_next_states)
+        q_next_target_all = self.local_network.forward(x1 = ego_vehicle_next_states, x2 = environment_next_states)
         # get q value of action with same index as that of the action with maximum q values (from local network)
         q_next_target = q_next_target_all.gather(1, q_next_predicted_all.max(1)[1].unsqueeze(1)).squeeze(1)
         # Find target q value using Bellmann's equation
