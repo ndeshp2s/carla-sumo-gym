@@ -4,11 +4,11 @@ sumo_gui = False
 
 # ego vehicle related
 #  start positon (in sumo)
-start_position = 70.0
+start_position = [60.0, 70.0]
 goal_position = 90.0
 ev_type = 'vehicle.audi.etron'
 # goal position (in carla)
-goal_x = -140.0
+goal_x = -70.0
 goal_y = 48.25
 
 max_speed = 12 # in mps
@@ -53,12 +53,12 @@ N_DISCRETE_ACTIONS = 4
 
 ### spawner related ###
 spawner_frequency = 1
-number_of_walkers = 30
-walker_spawn_distance_maximum = 35.0
-walker_spawn_distance_minimum = 0.0
-walker_allowed_distance_maximum = 40.0
+number_of_walkers = 25
+walker_spawn_distance_maximum = 40.0
+walker_spawn_distance_minimum = -5.0
+walker_allowed_distance_maximum = 50.0
 walker_allowed_distance_minimum = -5.0
-walker_pedestrians_crossing = 0.8
+walker_pedestrians_crossing = 0.7
 walker_pedestrians_crossing_illegal = 0.0
 
 maximum_distance_pedestrian = 40.0

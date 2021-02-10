@@ -112,7 +112,7 @@ class CarlaSumoGym(gym.Env):
         time.sleep(1.0)
 
 
-    def take_action(self, max_speed = 15, action = 3):
+    def take_action(self, max_speed = 12, action = 3):
         dt = traci.simulation.getDeltaT()
         ev_speed = self.get_ego_vehicle_speed(kmph = False)
         desired_speed = 0.0

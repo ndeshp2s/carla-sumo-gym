@@ -256,7 +256,7 @@ import time
 from environments.urban_env_0.walker_spawn_points import walker_spawn_points
 from environments.urban_env_0 import config
 
-DEBUG = 1
+DEBUG = 0
 
 def main():
 
@@ -266,23 +266,42 @@ def main():
 
 
     world.apply_settings(carla.WorldSettings(synchronous_mode = True, fixed_delta_seconds = 0.1))
+    world.set_pedestrians_cross_factor(1)
+    world.set_pedestrians_cross_illegal_factor(1)
 
     # Spawn a dummy ego vehicle
-    sp = carla.Transform(carla.Location(x = 14.4, y = -1.7, z = 0.1), carla.Rotation(yaw = 180))
+    sp = carla.Transform(carla.Location(x = 44.4, y = -1.7, z = 0.1), carla.Rotation(yaw = 180))
     bp = random.choice(world.get_blueprint_library().filter('vehicle.audi.etron'))
     bp.set_attribute('role_name', 'hero')
 
-    ego_vehicle = world.spawn_actor(bp, sp)
+    #ego_vehicle = world.spawn_actor(bp, sp)
 
     world.tick()
 
-    spawner = Spawner(client, walker_spawn_points, ego_vehicle.id)
+    walker_bp = random.choice(world.get_blueprint_library().filter("walker.pedestrian.*"))
+    walker_sp = carla.Transform(carla.Location(x=26,y=-1.6,z=1.0), carla.Rotation(yaw=180, pitch=0, roll=0))
+    walker = world.try_spawn_actor(walker_bp, walker_sp)
+
+    world.tick()
+
+    controller_bp = world.get_blueprint_library().find('controller.ai.walker')
+    controller = world.spawn_actor(controller_bp, carla.Transform(), attach_to = walker)
+    goal = carla.Transform(carla.Location(x=16,y=5.0,z=0.5), carla.Rotation(yaw=180, pitch=0, roll=0))
+    #goal.location.z = 0.2
+
+    world.tick()
+
+    controller.start()
+    controller.go_to_location(goal.location)
+    controller.set_max_speed(0.5 + random.random())
+
+    #spawner = Spawner(client, walker_spawn_points, ego_vehicle.id)
     #spawner.update_config(max_dist_ped = config.maximum_distance_pedestrian, min_dist_ped = config.minimum_distance_pedestrian, num_of_ped = config.number_of_pedestrians, ped_crossing = config.pedestrian_crossing_legal, ped_crossing_illegal = config.pedestrian_crossing_illegal)
 
 
     try:
         while True:
-            spawner.run_step()
+            #spawner.run_step()
             world.tick()
             time.sleep(0.1)
 

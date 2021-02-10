@@ -13,6 +13,7 @@ except IndexError:
     pass
 import carla
 
+from agents.tools.misc import get_speed
 from utils.misc import is_within_distance, is_within_distance_ahead, euclidean_distance, walker_relative_position
 
 
@@ -50,6 +51,9 @@ class Spawner(object):
         # spawn the pedestrians
         self.spawn_pedestrians(ev_trans)
 
+        # check pedestrian speed
+        self.check_speed()
+
 
        
     def spawn_pedestrians(self, ev_trans):
@@ -75,13 +79,13 @@ class Spawner(object):
             
             walker_sp = carla.Transform()
             walker_sp = random.choice(spawn_points)            
-            walker_sp.location.x += random.uniform(-0.2, 0.2)
-            walker_sp.location.y += random.uniform(-0.2, 0.2)
+            # walker_sp.location.x += random.uniform(-0.1, 0.1)
+            # walker_sp.location.y += random.uniform(-0.1, 0.1)
 
             walker = self.world.try_spawn_actor(walker_bp, walker_sp)
 
             if walker is not None:
-                self.walker_list.append({"id": walker.id, "controller": None, "start": walker_sp})
+                self.walker_list.append({"id": walker.id, "controller": None, "start": walker_sp, "speed": 0})
                 spawn_points.remove(walker_sp)
 
 
@@ -122,6 +126,35 @@ class Spawner(object):
 
                 walker.destroy()
                 self.walker_list.remove(w)
+
+    def check_speed(self):
+        for w in self.walker_list:
+            if w["controller"] is not None:
+                walker = self.world.get_actor(w["id"])
+                speed = get_speed(walker)
+                walker_wp = self.map.get_waypoint(walker.get_transform().location, project_to_road = True, lane_type = (carla.LaneType.Driving | carla.LaneType.Sidewalk))
+                # if speed < 1.0:
+                #     print(w["id"], speed)
+                if speed <= 0.2 and walker_wp == carla.LaneType.Driving:
+                    w["speed"] = w["speed"] + 1
+                    controller = self.world.get_actor(w["controller"])
+                    controller.go_to_location(self.world.get_random_location_from_navigation())
+                # else:
+                #     w["speed"] = 0
+
+                if w["speed"] >= 5:
+                    controller = self.world.get_actor(w["controller"])
+                    if controller is not None:
+                        controller.stop()
+                        controller.destroy()
+                    walker.destroy()
+                    self.walker_list.remove(w)
+                # elif w["speed"] > 2:
+                #     controller = self.world.get_actor(w["controller"])
+                #     controller.go_to_location(self.world.get_random_location_from_navigation())
+
+
+
 
 
     def get_walker_goal(self, goal_points, start, crossing = True):
