@@ -180,7 +180,7 @@ class UrbanEnv(CarlaSumoGym, Spawner):
         for w in walker_list:
             w_trans = w.get_transform()
             walker_relative_position = compute_relative_position(source_transform = ego_vehicle_trans, destination_transform = w_trans)
-            walker_relative_position[0] -= 1.0
+            #walker_relative_position[0] -= 1.0
 
             x_discrete, status_x = get_index(val = walker_relative_position[0], start = self.config.grid_height_min, stop = self.config.grid_height_max, num = self.config.grid_height)
             y_discrete, status_y = get_index(val = walker_relative_position[1], start = self.config.grid_width_min, stop = self.config.grid_width_max, num = self.config.grid_width)
@@ -266,7 +266,7 @@ class UrbanEnv(CarlaSumoGym, Spawner):
                 c_reward = -4.0
                 done = True
                 info = 'Collision'
-            else:
+            elif self.collision_counter > 1:
                 #c_reward = -10
                 done = True
                 info = 'PedestrianCollision'
