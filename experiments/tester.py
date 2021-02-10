@@ -32,10 +32,10 @@ class Tester:
                     action = input('Enter action: ')
                     action = int(action)
                 else:
-                    #input('Enter: ')
+                    input('Enter: ')
                     action, action_values = self.agent.pick_action(state, 0)
                     #print(action_values)
-                time.sleep(0.1)
+                #time.sleep(0.1)
 
                 # Execute action for n times
                 #self.spawner.run_step(step) # running spawner step
@@ -43,9 +43,9 @@ class Tester:
                 for i in range(0, self.params.action_repeat):
                     next_state, reward, done, info = self.env.step(action = action, action_values = action_values)
                     #print('state: ', next_state[0])
-                    #print('speed: ', self.env.get_ego_vehicle_speed(kmph = False))
-                    #print('action: ', action)
-                    #print('reward: ', reward)
+                    print('speed: ', self.env.get_ego_vehicle_speed(kmph = False))
+                    print('action: ', action)
+                    print('reward: ', reward)
 
                 state = next_state
                 episode_steps += 1

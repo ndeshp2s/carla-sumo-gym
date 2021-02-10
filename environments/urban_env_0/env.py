@@ -164,7 +164,7 @@ class UrbanEnv(CarlaSumoGym, Spawner):
                 waypoint = self.map.get_waypoint(ego_vehicle_trans.location, project_to_road=True, lane_type=(carla.LaneType.Driving))
                 ev_lane = self.find_lane_type(wp = waypoint, trans = ego_vehicle_trans)
                 ev_lane_norm = normalize_data(data = ev_lane, min_val = 0, max_val = 3)
-                ev_lane_norm = round(ev_lane_norm, 2)
+                ev_lane_norm = round(ev_lane_norm, 4)
                 
                 # state update for ego vehicle -> occupancy, heading, speed, lane type
                 environment_state[x_discrete, y_discrete, :] = [0.5, 0.0, ego_vehicle_speed_norm]
@@ -205,7 +205,7 @@ class UrbanEnv(CarlaSumoGym, Spawner):
 
                 # data normalization
                 w_relative_heading_norm = normalize_data(data = w_relative_heading, min_val = 0, max_val = 360.0)
-                w_relative_heading_norm = round(w_relative_heading_norm, 2)
+                w_relative_heading_norm = round(w_relative_heading_norm, 4)
                 w_speed_norm = normalize_data(data = w_speed, min_val = 0, max_val = self.config.max_speed)
                 w_speed_norm = round(w_speed_norm, 4)
                 w_lane_norm = normalize_data(data = w_lane, min_val = 0, max_val = 3)
@@ -239,12 +239,12 @@ class UrbanEnv(CarlaSumoGym, Spawner):
 
         # reward for collision
         center_to_bumper_dist = 0.0
-        safety_distance = 1.0
+        safety_distance = 3.0
         walker_list = self.world.get_actors().filter('walker.pedestrian.*')
         nc_dist_max = (ego_vehicle_speed*ego_vehicle_speed)/(2*2.5) + center_to_bumper_dist
         nc_dist_min = (ego_vehicle_speed*ego_vehicle_speed)/(2*7.5)
-        nc_dist_max = round(nc_dist_max, 2)
-        nc_dist_min = round(nc_dist_min, 2)
+        nc_dist_max = round(nc_dist_max, 4)
+        nc_dist_min = round(nc_dist_min, 4)
 
         nc_dist_max = max(nc_dist_max, center_to_bumper_dist + safety_distance)
         if DEBUG: print('Distance: ', nc_dist_max)
@@ -252,13 +252,16 @@ class UrbanEnv(CarlaSumoGym, Spawner):
         collision, near_collision, walker, distance = self.find_collision(walker_list = walker_list, range = nc_dist_max)
         if DEBUG: print('Ped dist: ', distance)
         if collision:
-            if ego_vehicle_speed > 0.0:
-                c_reward = -10
-                done = True
-                info = 'NormalCollision'
-            else:
-                done = False
-                info = 'PedestrianCollision'
+            c_reward = -10
+            done = True
+            info = 'Collision'
+            # if ego_vehicle_speed > 0.0:
+            #     c_reward = -10
+            #     done = True
+            #     info = 'NormalCollision'
+            # else:
+            #     done = True
+            #     info = 'PedestrianCollision'
 
 
         elif near_collision:
@@ -270,8 +273,8 @@ class UrbanEnv(CarlaSumoGym, Spawner):
             #     nc_reward = -4 * nc_reward
 
             if (distance - nc_dist_max) < 0 and ego_vehicle_speed > 0.0:
-                nc_reward = -4 * np.exp( -((distance - nc_dist_max)/nc_dist_max) )
-                nc_reward = round(nc_reward, 2)
+                nc_reward = -4*np.exp( -((distance - nc_dist_max)/nc_dist_max) )
+                nc_reward = round(nc_reward, 4)
 
             # if (distance - nc_dist_max) <= 0 and ego_vehicle_speed > 0.0:
             #     nc_reward = -4 * np.exp(-x)
@@ -295,23 +298,23 @@ class UrbanEnv(CarlaSumoGym, Spawner):
 
 
         #total_reward = self.compute_total_reward(d_reward = d_reward, nc_reward = nc_reward, c_reward = c_reward)
-        # if collision:
-        #     total_reward = c_reward
-        # elif near_collision:
-        #     total_reward = nc_reward
-        # else:
-        #     total_reward = d_reward
-        # total_reward = round(total_reward, 4)
-
-        total_reward = d_reward + c_reward + nc_reward
+        if collision:
+            total_reward = c_reward
+        elif near_collision:
+            total_reward = nc_reward
+        else:
+            total_reward = d_reward
         total_reward = round(total_reward, 4)
+
+        # total_reward = d_reward + c_reward + nc_reward
+        # total_reward = round(total_reward, 4)
 
         return total_reward, done, info
 
 
     def compute_total_reward(self, d_reward, nc_reward, c_reward):
         total_reward = d_reward + c_reward + nc_reward
-        total_reward = round(total_reward, 2)
+        total_reward = round(total_reward, 4)
         return total_reward
 
 

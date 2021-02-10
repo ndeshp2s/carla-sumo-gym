@@ -34,6 +34,7 @@ def load_parameters(file):
     params.hyperparameters['target_network_update_frequency'] = int(params_dict['target_network_update_frequency'])
     params.hyperparameters['update_buffer_memory_frequency'] = int(params_dict['update_buffer_memory_frequency'])
     params.hyperparameters['reward_summation'] = bool(params_dict['reward_summation'])
+    params.hyperparameters['sequence_length'] = int(params_dict['sequence_length'])
 
     return params
 

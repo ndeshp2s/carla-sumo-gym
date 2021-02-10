@@ -4,6 +4,7 @@ import pickle
 import cloudpickle
 import torch
 from torch.utils.tensorboard import SummaryWriter
+from collections import namedtuple
 
 from utils.epsilon_decay import EpsilonDecay
 from utils.misc import create_directory
@@ -13,7 +14,7 @@ import bz2
 from collections import deque
 from itertools import islice
 
-DEBUG = 0
+DEBUG = 1
 class Trainer:
     def __init__(self, env, agent, spawner, params, exp_dir, retrain = False):
         self.env = env
@@ -39,6 +40,8 @@ class Trainer:
         self.buffer_dir = os.path.join(exp_dir, 'buffer_memory')
         if not self.retrain_flag: create_directory(dir = self.buffer_dir)
 
+        self.experience = namedtuple("Experience", field_names = ["state", "action", "reward", "next_state", "done"])
+
 
     def train(self, pre_eps = -1, pre_steps = 0):
 
@@ -53,6 +56,7 @@ class Trainer:
         total_steps = pre_steps
         ep = pre_eps
 
+
         #for ep in range(pre_eps + 1, self.params.training_episodes):
         while total_steps < self.params.training_total_steps:
             
@@ -60,16 +64,20 @@ class Trainer:
             #self.spawner.reset(config = self.env.config, spawn_points = self.env.walker_spawn_points, ev_id = self.env.get_ego_vehicle_id())
 
             episode_reward = 0 
-            episode_steps = 0           
+            episode_steps = 0
 
-            for step in range(self.params.training_steps_per_episode):
+            local_memory = []
+            hs1, cs1 = self.agent.local_network.init_hidden_states(batch_size = 1, lstm_memory = 32)
+            hs2, cs2 = self.agent.local_network.init_hidden_states(batch_size = 1, lstm_memory = 512)           
+
+            for step in range(10):
 
                 # Select action
                 if DEBUG:
                     action = input('Enter action: ')
                     action = int(action)
                 else:
-                    action, action_values  = self.agent.pick_action(state, self.epsilon)
+                    action, hs1, cs1,  hs2, cs2, action_values  = self.agent.pick_action(state = state, epsilon = self.epsilon, hs1 = hs1, cs1 = cs1, hs2 = hs2, cs2 = cs2)
 
                 # Execute action for n times
                 #self.spawner.run_step(step) # running spawner step
@@ -78,7 +86,8 @@ class Trainer:
                     next_state, reward, done, info = self.env.step(action)
 
                 # Add experience to memory of local network
-                self.agent.add(state = state, action = action, reward = reward, next_state = next_state, done = done)
+                experience = self.experience(state = state, action = action, reward = reward, next_state = next_state, done = done)
+                local_memory.append(experience)
 
                 # Update parameters
                 state = next_state
@@ -89,7 +98,7 @@ class Trainer:
                 # compute the loss
                 loss = 0
                 if self.agent.buffer.__len__() > self.params.hyperparameters['batch_size']:
-                    loss = self.agent.learn(batch_size = self.params.hyperparameters['batch_size'])
+                    #loss = self.agent.learn(batch_size = self.params.hyperparameters['batch_size'])
                     # save the loss
                     self.writer.add_scalar('Loss per step', loss, total_steps)
 
@@ -108,6 +117,9 @@ class Trainer:
             #self.spawner.close()
             #self.env.close()
 
+            # Save local memory
+            if len(local_memory) >= (self.config.hyperparameters["sequence_length"]):
+                self.agent.add(local_memory)
 
 
             # Print details of the episode
@@ -172,12 +184,15 @@ class Trainer:
             while True:
                 
                 state = self.env.reset(type = 'soft')
-                #self.spawner.reset(config = self.env.config, spawn_points = self.env.walker_spawn_points, ev_id = self.env.get_ego_vehicle_id())         
+                #self.spawner.reset(config = self.env.config, spawn_points = self.env.walker_spawn_points, ev_id = self.env.get_ego_vehicle_id())  
+                local_memory = []   
+                hs1, cs1 = self.agent.local_network.init_hidden_states(batch_size = 1, lstm_memory = 32)
+                hs2, cs2 = self.agent.local_network.init_hidden_states(batch_size = 1, lstm_memory = 512)      
 
                 for step in range(self.params.training_steps_per_episode):
 
                     # Select action
-                    action, action_values  = self.agent.pick_action(state, self.epsilon)
+                    action, hs1, cs1,  hs2, cs2, action_values  = self.agent.pick_action(state = state, epsilon = self.epsilon, hs1 = hs1, cs1 = cs1, hs2 = hs2, cs2 = cs2)
 
                     # Execute action for n times
                     #self.spawner.run_step(step) # running spawner step
@@ -186,10 +201,14 @@ class Trainer:
                         next_state, reward, done, info = self.env.step(action)
 
                     # Add experience to memory of local network
-                    self.agent.add(state = state, action = action, reward = reward, next_state = next_state, done = done)
+                    experience = self.experience(state = state, action = action, reward = reward, next_state = next_state, done = done)
+                    local_memory.append(experience)
 
                     if done:
                         break
+                # Save local memory
+                if len(local_memory) >= (self.config.hyperparameters["sequence_length"]):
+                    self.agent.add(local_memory)
 
                 print('------------------------------------------------------------------------------')
                 print('Buffer memory size: ', self.agent.buffer.__len__())

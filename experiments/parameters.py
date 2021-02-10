@@ -22,3 +22,4 @@ class Parameters:
     hyperparameters['target_network_update_frequency'] = 0
     hyperparameters['update_buffer_memory_frequency'] = 0
     hyperparameters['reward_summation'] = False
+    hyperparameters['sequence_length'] = 0
